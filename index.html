@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>GLM 120 C - Vectorizador & Diagnóstico</title>
+  <title>GLM 120 C - Vectorizador</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
     body { background: #111; color: #eee; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -94,12 +94,10 @@
 <div id="log"></div>
 
 <script>
-  // UUIDs conocidos de telémetros Bosch
-  const CANDIDATE_SERVICES = [
-    "00005301-0000-0041-4c53-53494e535452",
-    "00000001-0000-1000-8000-00805f9b34fb",
-    "00001801-0000-1000-8000-00805f9b34fb",
-    "00001800-0000-1000-8000-00805f9b34fb"
+  // UUIDs reales del GLM 120 C detectados por el escáner
+  const TARGET_SERVICES = [
+    "02a6c0d0-0451-4000-b000-fb3210111989",
+    "02a6c0f0-0451-4000-b000-fb3210111989"
   ];
 
   let currentHeading = 0;
@@ -129,20 +127,6 @@
     logDiv.scrollTop = logDiv.scrollHeight;
   }
 
-  function logErrorDetails(err, stage) {
-    log(`FALLA EN ETAPA: ${stage}`, "err");
-    if (!err) {
-      log("Error devuelto: null / undefined (típico rechazo interno del plugin de Bluefy o desconexión por timeout)", "err");
-      return;
-    }
-    log(`Nombre: ${err.name || "N/A"}`, "err");
-    log(`Mensaje: ${err.message || "Sin mensaje descriptivo"}`, "err");
-    log(`Código: ${err.code || "N/A"}`, "err");
-    if (err.stack) {
-      log(`Stack: ${err.stack.split("\n")[0]}`, "warn");
-    }
-  }
-
   function resize() {
     canvas.width = canvas.parentElement.clientWidth;
     canvas.height = canvas.parentElement.clientHeight;
@@ -151,7 +135,7 @@
   window.addEventListener("resize", resize);
   resize();
 
-  // 1. Sensores iOS
+  // 1. Sensores de Orientación
   btnSensors.addEventListener("click", async () => {
     if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
       try {
@@ -162,10 +146,10 @@
           btnSensors.innerText = "Brújula OK";
           log("Sensores de orientación activados.", "ok");
         } else {
-          log("Permiso denegado por el usuario.", "err");
+          log("Permiso de brújula denegado.", "err");
         }
       } catch (e) {
-        logErrorDetails(e, "Permisos de Brújula");
+        log("Error brújula: " + (e.message || e), "err");
       }
     } else {
       window.addEventListener("deviceorientation", handleOrientation, true);
@@ -198,120 +182,92 @@
     log(`Modo Ortogonal: ${orthoEnabled ? "ON" : "OFF"}`);
   });
 
-  // 2. Conexión BLE con escaneo y diagnóstico profundo
+  // 2. Conexión BLE directa a los servicios identificados
   btnBLE.addEventListener("click", async () => {
-    let currentStage = "Inicialización";
-    
     if (!navigator.bluetooth) {
-      log("navigator.bluetooth NO existe en este navegador.", "err");
+      log("navigator.bluetooth NO disponible en este navegador.", "err");
       return;
     }
 
     try {
-      currentStage = "Escaneo de Dispositivo";
       log("Iniciando escaneo BLE...", "info");
 
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
-        optionalServices: CANDIDATE_SERVICES
+        optionalServices: TARGET_SERVICES
       });
 
-      if (!device) {
-        throw new Error("No se seleccionó ningún dispositivo del diálogo.");
-      }
-
-      log(`Dispositivo: ${device.name || "Sin nombre"} | ID: ${device.id}`, "ok");
+      log(`Dispositivo seleccionado: ${device.name || device.id}`, "ok");
 
       device.addEventListener("gattserverdisconnected", () => {
-        log("AVISO: El dispositivo se ha desconectado.", "warn");
+        log("Dispositivo desconectado.", "warn");
         btnBLE.disabled = false;
         btnBLE.innerText = "2. Conectar GLM";
         btnBLE.classList.remove("active");
       });
 
-      currentStage = "Conexión GATT Server";
-      log("Conectando al servidor GATT...", "info");
+      log("Conectando a GATT Server...", "info");
       const server = await device.gatt.connect();
-      log("Servidor GATT conectado.", "ok");
-
-      currentStage = "Descubrimiento de Servicios";
-      log("Buscando servicios primarios...", "info");
-
-      let services = [];
-      try {
-        services = await server.getPrimaryServices();
-        log(`Servicios descubiertos: ${services.length}`, "ok");
-        services.forEach((s, idx) => log(`[Srv ${idx}] ${s.uuid}`, "info"));
-      } catch (svcErr) {
-        log(`getPrimaryServices() no permitido o falló: ${svcErr.message || svcErr}`, "warn");
-      }
-
-      // Si getPrimaryServices falla, iterar candidatos de forma individual
-      let activeService = null;
-      if (services.length > 0) {
-        activeService = services.find(s => CANDIDATE_SERVICES.includes(s.uuid.toLowerCase())) || services[0];
-      } else {
-        for (const uuid of CANDIDATE_SERVICES) {
-          try {
-            currentStage = `Consulta directa de servicio ${uuid}`;
-            activeService = await server.getPrimaryService(uuid);
-            if (activeService) {
-              log(`Servicio obtenido de forma directa: ${uuid}`, "ok");
-              break;
-            }
-          } catch (ignore) {}
-        }
-      }
-
-      if (!activeService) {
-        throw new Error("No fue posible obtener ningún servicio utilizable en el telémetro.");
-      }
-
-      currentStage = `Lectura de Características del Servicio ${activeService.uuid}`;
-      log(`Explorando características en: ${activeService.uuid}...`, "info");
-      const characteristics = await activeService.getCharacteristics();
-      log(`Características encontradas: ${characteristics.length}`, "ok");
+      log("GATT Server conectado.", "ok");
 
       let notifyChar = null;
-      for (const c of characteristics) {
-        const p = c.properties;
-        log(`-> Char: ${c.uuid} | read:${p.read} write:${p.write || p.writeWithoutResponse} notify:${p.notify} indicate:${p.indicate}`, "info");
-        if ((p.notify || p.indicate) && !notifyChar) {
-          notifyChar = c;
+
+      // Iterar por los dos servicios específicos encontrados
+      for (const serviceUuid of TARGET_SERVICES) {
+        try {
+          log(`Accediendo a servicio: ${serviceUuid}...`, "info");
+          const service = await server.getPrimaryService(serviceUuid);
+          const chars = await service.getCharacteristics();
+
+          for (const c of chars) {
+            const p = c.properties;
+            log(`Char: ${c.uuid} | read:${p.read} write:${p.write || p.writeWithoutResponse} notify:${p.notify} indicate:${p.indicate}`, "info");
+            if ((p.notify || p.indicate) && !notifyChar) {
+              notifyChar = c;
+            }
+          }
+
+          if (notifyChar) break;
+        } catch (sErr) {
+          log(`Servicio ${serviceUuid} no accesible: ${sErr.message || sErr}`, "warn");
         }
       }
 
       if (!notifyChar) {
-        throw new Error("Ninguna característica del servicio admite notificaciones.");
+        throw new Error("No se halló característica con soporte de notificación en los servicios objetivo.");
       }
 
-      currentStage = `Suscripción a Notificaciones en ${notifyChar.uuid}`;
-      log(`Suscribiendo a eventos en: ${notifyChar.uuid}...`, "info");
+      log(`Suscribiendo a notificaciones en: ${notifyChar.uuid}...`, "info");
       await notifyChar.startNotifications();
-      
+
       notifyChar.addEventListener("characteristicvaluechanged", (e) => {
         const val = e.target.value;
-        const rawHex = Array.from(new Uint8Array(val.buffer)).map(b => b.toString(16).padStart(2, '0')).join(' ');
-        log(`RX Data (${val.byteLength}b): ${rawHex}`, "info");
+        const hex = Array.from(new Uint8Array(val.buffer)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+        log(`RX (${val.byteLength}b): ${hex}`, "info");
 
-        if (val.byteLength >= 8) {
-          const rawDist = val.getUint32(4, true);
+        // Decodificación de distancia: entero de 32 bits little-endian
+        if (val.byteLength >= 4) {
+          let rawDist = 0;
+          if (val.byteLength >= 8) {
+            rawDist = val.getUint32(4, true);
+          } else {
+            rawDist = val.getUint32(0, true);
+          }
+
           const meters = rawDist / 1000.0;
-          if (meters > 0 && meters < 150) {
+          if (meters > 0.05 && meters < 150) {
             processVector(meters);
           }
         }
       });
-      log("Suscripción activa. Listo para recibir pulsos del GLM.", "ok");
 
-      // Intento de envío de inicialización
+      // Secuencia de inicialización / keep-alive opcional si la característica permite escritura
       if (notifyChar.properties.write || notifyChar.properties.writeWithoutResponse) {
         try {
-          currentStage = "Comando de Inicialización Bosch";
           await notifyChar.writeValue(new Uint8Array([0xc0, 0x55, 0x02, 0x01, 0x00, 0x1a]));
-          log("Comando de sincronización enviado correctamente.", "ok");
+          log("Sincronización enviada.", "ok");
         } catch (wErr) {
-          log(`Escritura de sincronización omitida: ${wErr.message || wErr}`, "warn");
+          // No bloqueante
         }
       }
 
@@ -319,9 +275,10 @@
       btnBLE.innerText = "GLM Conectado";
       btnBLE.classList.add("active");
       btnDxf.disabled = false;
+      log("Conectado con éxito. Toma mediciones desde el botón del GLM.", "ok");
 
     } catch (err) {
-      logErrorDetails(err, currentStage);
+      log(`Falla de conexión: ${err.message || err}`, "err");
     }
   });
 
