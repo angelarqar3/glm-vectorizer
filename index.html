@@ -13,7 +13,7 @@
       --acad-cyan: #06b6d4;
       --acad-green: #22c55e;
       --acad-red: #ef4444;
-      --acad-grid: #282828;
+      --acad-orange: #f97316;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
@@ -34,21 +34,22 @@
       background: #3f3f46;
       color: #f4f4f5;
       border: 1px solid #52525b;
-      padding: 6px 10px;
-      font-size: 0.72rem;
+      padding: 6px 9px;
+      font-size: 0.70rem;
       font-family: inherit;
       border-radius: 2px;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       touch-action: manipulation;
     }
     .btn:active { background: #52525b; }
     .btn.active { background: #0284c7; border-color: #38bdf8; color: #fff; }
     .btn.success { background: #15803d; border-color: #22c55e; }
     .btn.danger { background: #991b1b; border-color: #ef4444; }
+    .btn.warn { background: #9a3412; border-color: #f97316; }
     .btn:disabled { background: #27272a; border-color: #3f3f46; color: #71717a; }
 
     #status-bar {
@@ -107,6 +108,9 @@
   <button id="btnSensors" class="btn">BRÚJULA</button>
   <button id="btnBLE" class="btn">CONECTAR GLM</button>
   <button id="btnOrtho" class="btn">F8 [ORTO: OFF]</button>
+  <button id="btnManualDist" class="btn">D. MANUAL</button>
+  <button id="btnUndo" class="btn warn" disabled>DESHACER [U]</button>
+  <button id="btnRedo" class="btn" disabled>REHACER</button>
   <button id="btnSetBase" class="btn">REPOSICIONAR</button>
   <button id="btnFinish" class="btn danger">CERRAR</button>
   <button id="btnDxf" class="btn success" disabled>EXPORTAR DXF</button>
@@ -117,7 +121,7 @@
   <span>RUMBO: <span id="valHeading" class="stat-val">---.-°</span></span>
   <span>SNAP: <span id="valSnap" class="stat-val">---°</span></span>
   <span>DIST: <span id="valDist" class="stat-val">0.000m</span></span>
-  <span>ENTIDADES: <span id="valLines" class="stat-val">0</span></span>
+  <span>LÍNEAS: <span id="valLines" class="stat-val">0</span></span>
 </div>
 
 <div id="viewport-container">
@@ -134,6 +138,7 @@
   const CHAR_TX_RX   = "02A6C0D1-0451-4000-B000-FB3210111989";
 
   let lines = [];
+  let redoStack = []; // Pila de entidades para deshacer/rehacer
   let activeBasePoint = { x: 0, y: 0 };
   let currentHeading = 0;
   let orthoEnabled = false;
@@ -141,11 +146,10 @@
   let isDrawingClosed = false;
   let lastMeasuredDistance = 0.0;
 
-  // Transformaciones viewport
+  // Viewport CAD
   let viewOffset = { x: 0, y: 0 };
   let viewScale = 45.0; // Píxeles por metro
 
-  // Dimensiones botones de flechas táctiles en pantalla
   const ARROW_OFFSET = 55;
   const ARROW_RADIUS = 22;
 
@@ -162,6 +166,9 @@
   const btnSensors = document.getElementById("btnSensors");
   const btnBLE = document.getElementById("btnBLE");
   const btnOrtho = document.getElementById("btnOrtho");
+  const btnManualDist = document.getElementById("btnManualDist");
+  const btnUndo = document.getElementById("btnUndo");
+  const btnRedo = document.getElementById("btnRedo");
   const btnSetBase = document.getElementById("btnSetBase");
   const btnFinish = document.getElementById("btnFinish");
   const btnDxf = document.getElementById("btnDxf");
@@ -173,6 +180,13 @@
     row.innerHTML = `<span class="cmd-prompt">Comando:</span> ${text}`;
     cmdLine.appendChild(row);
     cmdLine.scrollTop = cmdLine.scrollHeight;
+  }
+
+  function updateControlsState() {
+    valLines.innerText = lines.length;
+    btnUndo.disabled = lines.length === 0;
+    btnRedo.disabled = redoStack.length === 0;
+    btnDxf.disabled = lines.length === 0;
   }
 
   function resizeCanvas() {
@@ -187,7 +201,7 @@
   window.addEventListener("resize", resizeCanvas);
   resizeCanvas();
 
-  // 1. Orientación iOS
+  // 1. Sensores de Orientación
   btnSensors.addEventListener("click", async () => {
     if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
       try {
@@ -235,7 +249,66 @@
     renderScene();
   });
 
-  // Reposicionar punto base
+  // Ingreso de Distancia Manual
+  btnManualDist.addEventListener("click", () => {
+    const input = prompt("Ingrese distancia en metros (ej: 4.25):", lastMeasuredDistance > 0 ? lastMeasuredDistance.toFixed(3) : "");
+    if (input !== null) {
+      const parsed = parseFloat(input.replace(",", "."));
+      if (!isNaN(parsed) && parsed > 0 && parsed < 200) {
+        lastMeasuredDistance = parsed;
+        valDist.innerText = parsed.toFixed(3) + "m";
+        printCmd(`DISTANCIA ASIGNADA MANUALMENTE: ${parsed.toFixed(3)}m. Use las flechas para orientar.`, "cmd-ok");
+        renderScene();
+      } else {
+        printCmd("VALOR DE DISTANCIA INVÁLIDO.", "cmd-warn");
+      }
+    }
+  });
+
+  // Deshacer Última Lectura (UNDO / U)
+  btnUndo.addEventListener("click", () => {
+    if (lines.length === 0) return;
+    const removedLine = lines.pop();
+    redoStack.push(removedLine);
+
+    // Retornar el punto base al inicio de la línea deshecha
+    activeBasePoint = { x: removedLine.x1, y: removedLine.y1 };
+    isDrawingClosed = false;
+    modeInd.innerText = "MODO CONTINUO ACTIVO";
+
+    updateControlsState();
+    printCmd(`DESHACER: Línea L=${removedLine.dist.toFixed(3)}m eliminada.`, "cmd-warn");
+    fitView();
+    renderScene();
+  });
+
+  // Rehacer Lectura (REDO)
+  btnRedo.addEventListener("click", () => {
+    if (redoStack.length === 0) return;
+    const restoredLine = redoStack.pop();
+    
+    // Reposicionar línea desde el punto base actual
+    const dx = restoredLine.x2 - restoredLine.x1;
+    const dy = restoredLine.y2 - restoredLine.y1;
+    const newLine = {
+      x1: activeBasePoint.x,
+      y1: activeBasePoint.y,
+      x2: activeBasePoint.x + dx,
+      y2: activeBasePoint.y + dy,
+      dist: restoredLine.dist,
+      angle: restoredLine.angle
+    };
+
+    lines.push(newLine);
+    activeBasePoint = { x: newLine.x2, y: newLine.y2 };
+
+    updateControlsState();
+    printCmd(`REHACER: Línea L=${newLine.dist.toFixed(3)}m restaurada.`, "cmd-ok");
+    fitView();
+    renderScene();
+  });
+
+  // Reposicionar Punto Base
   btnSetBase.addEventListener("click", () => {
     if (isDrawingClosed) return;
     isPickingOrigin = !isPickingOrigin;
@@ -244,7 +317,7 @@
     printCmd(isPickingOrigin ? "SELECCIONE COORDENADA DE INSERCIÓN EN PANTALLA:" : "CANCELADO.");
   });
 
-  // Interacción Táctil (Pan + Pick Point + Clics en Flechas Manuales)
+  // Interacción Táctil
   let touchStartPos = { x: 0, y: 0 };
   let isDragging = false;
 
@@ -282,7 +355,6 @@
 
     const baseScr = worldToScreen(activeBasePoint.x, activeBasePoint.y);
 
-    // Detección de clics en las 4 flechas de dirección manual
     if (!isDrawingClosed && !isPickingOrigin) {
       const arrowHits = [
         { dir: "UP",    angle: 0,   x: baseScr.x,                y: baseScr.y - ARROW_OFFSET },
@@ -300,7 +372,6 @@
       }
     }
 
-    // Modo Pick Point
     if (isPickingOrigin) {
       const worldX = (touchStartPos.x - viewOffset.x) / viewScale;
       const worldY = -(touchStartPos.y - viewOffset.y) / viewScale;
@@ -314,13 +385,13 @@
     }
   });
 
-  // Generar línea en dirección manual forzada
   function executeManualSegment(fixedAngleDeg, dirName) {
     if (lastMeasuredDistance <= 0.001) {
-      printCmd("NO HAY DISTANCIA REGISTRADA. DISPARE PRIMERO EL TELÉMETRO.", "cmd-warn");
+      printCmd("NO HAY DISTANCIA VÁLIDA. DISPARE EL GLM O USE 'D. MANUAL'.", "cmd-warn");
       return;
     }
 
+    redoStack = []; // Nueva operación limpia el buffer redo
     const dist = lastMeasuredDistance;
     const rad = (90 - fixedAngleDeg) * (Math.PI / 180);
     const targetX = activeBasePoint.x + dist * Math.cos(rad);
@@ -336,8 +407,7 @@
     });
 
     activeBasePoint = { x: targetX, y: targetY };
-    valLines.innerText = lines.length;
-    btnDxf.disabled = false;
+    updateControlsState();
 
     printCmd(`LÍNEA MANUAL [${dirName}]: L=${dist.toFixed(3)}m @ ${fixedAngleDeg}°`, "cmd-ok");
     fitView();
@@ -355,6 +425,7 @@
     const dist = Math.hypot(firstPt.x - activeBasePoint.x, firstPt.y - activeBasePoint.y);
 
     if (dist > 0.001) {
+      redoStack = [];
       lines.push({
         x1: activeBasePoint.x,
         y1: activeBasePoint.y,
@@ -368,8 +439,7 @@
 
     isDrawingClosed = true;
     modeInd.innerText = "POLÍGONO TERMINADO";
-    valLines.innerText = lines.length;
-    btnDxf.disabled = false;
+    updateControlsState();
     printCmd(`LEVANTAMIENTO CERRADO. LÍNEAS TOTALES: ${lines.length}`, "cmd-ok");
     renderScene();
   });
@@ -430,7 +500,7 @@
       return;
     }
 
-    // Si la brújula está activa se genera el trazo continuo; si no, espera uso de flecha
+    redoStack = [];
     let angle = currentHeading;
     if (orthoEnabled) {
       angle = Math.round(angle / 90) * 90 % 360;
@@ -450,8 +520,7 @@
     });
 
     activeBasePoint = { x: targetX, y: targetY };
-    valLines.innerText = lines.length;
-    btnDxf.disabled = false;
+    updateControlsState();
 
     printCmd(`MEDICIÓN: L=${dist.toFixed(3)}m @ ${angle.toFixed(0)}°`, "cmd-ok");
     fitView();
@@ -520,10 +589,8 @@
 
     const baseScr = worldToScreen(activeBasePoint.x, activeBasePoint.y);
 
-    // Retículo CAD y Flecha de Orientación Dinámica
     drawCrosshairAndCompassVector(baseScr.x, baseScr.y);
 
-    // 4 Flechas Ortogonales Táctiles de Dirección
     if (!isDrawingClosed) {
       drawDirectionPointers(baseScr.x, baseScr.y);
     }
@@ -563,7 +630,6 @@
 
     if (isDrawingClosed) return;
 
-    // Vector de brújula
     let angle = currentHeading;
     if (orthoEnabled) {
       angle = Math.round(angle / 90) * 90 % 360;
@@ -596,7 +662,6 @@
     ctx.fill();
   }
 
-  // Renderizado de las 4 flechas táctiles de dirección manual
   function drawDirectionPointers(cx, cy) {
     const arrows = [
       { label: "▲ N", x: cx, y: cy - ARROW_OFFSET },
@@ -606,7 +671,6 @@
     ];
 
     arrows.forEach(a => {
-      // Botón circular
       ctx.fillStyle = "rgba(30, 41, 59, 0.85)";
       ctx.strokeStyle = "#38bdf8";
       ctx.lineWidth = 1.5;
@@ -615,7 +679,6 @@
       ctx.fill();
       ctx.stroke();
 
-      // Texto de dirección
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 9px monospace";
       ctx.textAlign = "center";
@@ -649,12 +712,9 @@
     ctx.fillText("Y", ox - 3, oy - len - 3);
   }
 
-  // Exportador DXF compatible con iOS (Web Share API + Descarga forzada)
+  // Exportar DXF
   btnDxf.addEventListener("click", async () => {
-    if (lines.length === 0) {
-      printCmd("NO HAY ENTIDADES PARA EXPORTAR.", "cmd-warn");
-      return;
-    }
+    if (lines.length === 0) return;
 
     let dxf = "0\nSECTION\n2\nENTITIES\n";
     lines.forEach(l => {
@@ -667,7 +727,6 @@
     const fileName = `PLANO_${Date.now()}.dxf`;
     const blob = new Blob([dxf], { type: "application/dxf" });
 
-    // 1. Estrategia primaria para iOS: navigator.share (permite guardar en "Archivos", AirDrop o Correo)
     try {
       const file = new File([blob], fileName, { type: "application/dxf" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -676,18 +735,13 @@
           title: "Levantamiento GLM 120 C",
           text: `Exportación DXF: ${lines.length} entidades.`
         });
-        printCmd("COMPARTIDO EXITOSO (GUARDADO EN ARCHIVOS/AIRDROP).", "cmd-ok");
+        printCmd("EXPORTACIÓN COMPLETADA.", "cmd-ok");
         return;
       }
     } catch (shareErr) {
-      if (shareErr.name !== "AbortError") {
-        printCmd("SHARE RECHAZADO, USANDO DESCARGA ALTERNATIVA...", "cmd-warn");
-      } else {
-        return;
-      }
+      if (shareErr.name === "AbortError") return;
     }
 
-    // 2. Estrategia secundaria: Data URI directo (compatible con navegadores BLE como Bluefy)
     try {
       const reader = new FileReader();
       reader.onload = function() {
@@ -701,24 +755,24 @@
       };
       reader.readAsDataURL(blob);
     } catch (dErr) {
-      printCmd("ERROR DE DESCARGA: " + dErr.message, "cmd-err");
+      printCmd("ERROR EXPORTACIÓN: " + dErr.message, "cmd-err");
     }
   });
 
   // Reiniciar
   btnClear.addEventListener("click", () => {
     lines = [];
+    redoStack = [];
     activeBasePoint = { x: 0, y: 0 };
     isDrawingClosed = false;
     isPickingOrigin = false;
     lastMeasuredDistance = 0.0;
-    valLines.innerText = "0";
     valDist.innerText = "0.000m";
     btnSetBase.classList.remove("active");
-    btnDxf.disabled = true;
     modeInd.innerText = "VIEWPORT REINICIADO";
     viewOffset = { x: canvas.width / 2, y: canvas.height / 2 };
     viewScale = 45.0;
+    updateControlsState();
     printCmd("SISTEMA RESETEADO.", "cmd-warn");
     renderScene();
   });
