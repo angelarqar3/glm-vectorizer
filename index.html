@@ -251,6 +251,100 @@
     points = [{ x: 0, y: 0 }];
     logDiv.innerText = "Reiniciado.";
     draw();
+    // UUIDs oficiales y variantes del protocolo Bosch GLM
+const BOSCH_SERVICES = [
+  "00005301-0000-0041-4c53-53494e535452", // Servicio de telemetría GLM
+  "00000001-0000-1000-8000-00805f9b34fb"  // Variante estándar Bosch
+];
+
+btnBLE.addEventListener("click", async () => {
+  logDiv.innerText = "Verificando compatibilidad BLE...";
+
+  if (!navigator.bluetooth) {
+    logDiv.innerText = "ERROR CRÍTICO: navigator.bluetooth no existe. Abre este enlace en la app Bluefy, no en Safari/Chrome.";
+    return;
+  }
+
+  try {
+    logDiv.innerText = "Buscando dispositivo...";
+    
+    // Escaneo amplio con captura de todos los servicios conocidos de Bosch
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: BOSCH_SERVICES
+    });
+
+    if (!device) {
+      logDiv.innerText = "Dispositivo no seleccionado.";
+      return;
+    }
+
+    logDiv.innerText = `Conectando a: ${device.name || device.id}...`;
+    const server = await device.gatt.connect();
+
+    // Detección automática del servicio activo
+    let service = null;
+    let targetServiceUuid = null;
+
+    for (const uuid of BOSCH_SERVICES) {
+      try {
+        service = await server.getPrimaryService(uuid);
+        if (service) {
+          targetServiceUuid = uuid;
+          break;
+        }
+      } catch (e) {
+        // Continuar buscando el siguiente UUID
+      }
+    }
+
+    if (!service) {
+      throw new Error("No se encontró el servicio compatible de Bosch en este dispositivo.");
+    }
+
+    logDiv.innerText = `Servicio encontrado: ${targetServiceUuid}. Obteniendo características...`;
+
+    // Obtener todas las características del servicio
+    const characteristics = await service.getCharacteristics();
+    if (!characteristics || characteristics.length === 0) {
+      throw new Error("No se encontraron características GATT en el servicio.");
+    }
+
+    // Seleccionar la característica de notificación (habitualmente la primera con notify)
+    let dataChar = characteristics.find(c => c.properties.notify || c.properties.indicate) || characteristics[0];
+
+    await dataChar.startNotifications();
+    dataChar.addEventListener("characteristicvaluechanged", (e) => {
+      const val = e.target.value;
+      if (val && val.byteLength >= 8) {
+        const rawDist = val.getUint32(4, true);
+        const meters = rawDist / 1000.0;
+        if (meters > 0 && meters < 150) {
+          processVector(meters);
+        }
+      }
+    });
+
+    // Envío de inicialización para reporte continuo
+    if (dataChar.properties.write || dataChar.properties.writeWithoutResponse) {
+      try {
+        await dataChar.writeValue(new Uint8Array([0xc0, 0x55, 0x02, 0x01, 0x00, 0x1a]));
+      } catch (wErr) {
+        console.warn("Write opcional falló:", wErr);
+      }
+    }
+
+    btnBLE.disabled = true;
+    btnBLE.innerText = "GLM Conectado";
+    btnDxf.disabled = false;
+    logDiv.innerText = "Conexión exitosa. Toma una medición en el GLM.";
+
+  } catch (err) {
+    const msg = err && (err.message || err.name) ? (err.message || err.name) : JSON.stringify(err);
+    logDiv.innerText = `Error BLE: ${msg}`;
+    console.error("BLE Error detallado:", err);
+  }
+});
   });
 </script>
 </body>
