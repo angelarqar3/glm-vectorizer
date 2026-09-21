@@ -1,7 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GLM 120 C - Vectorizador & Diagnóstico</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
+    body { background: #111; color: #eee; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    
+    header { 
+      padding: 8px; 
+      background: #1c1c1e; 
+      display: flex; 
+      gap: 6px; 
+      flex-wrap: wrap; 
+      border-bottom: 1px solid #333; 
+    }
+    
+    button { 
+      background: #007aff; 
+      color: #fff; 
+      border: none; 
+      padding: 8px 10px; 
+      border-radius: 6px; 
+      font-weight: 600; 
+      font-size: 0.75rem; 
+      cursor: pointer; 
+      touch-action: manipulation;
+    }
+    button.active { background: #34c759; }
+    button:disabled { background: #2c2c2e; color: #666; }
+
+    #telemetry { 
+      display: flex; 
+      justify-content: space-around; 
+      background: #000; 
+      padding: 6px 4px; 
+      font-size: 0.75rem; 
+      color: #30d158; 
+      border-bottom: 1px solid #222; 
+    }
+
+    #canvas-box { 
+      flex: 1; 
+      position: relative; 
+      background: #181818; 
+    }
+    
+    canvas { 
+      width: 100%; 
+      height: 100%; 
+      display: block; 
+    }
+
+    #log { 
+      height: 160px; 
+      overflow-y: auto; 
+      background: #080808; 
+      padding: 8px; 
+      font-size: 0.7rem; 
+      border-top: 2px solid #333; 
+      color: #aaa;
+      line-height: 1.4;
+    }
+    #log .entry { border-bottom: 1px solid #1a1a1a; padding: 2px 0; word-break: break-all; }
+    #log .info { color: #5ac8fa; }
+    #log .warn { color: #ffd60a; }
+    #log .err  { color: #ff453a; font-weight: bold; }
+    #log .ok   { color: #30d158; }
+  </style>
+</head>
+<body>
+
+<header>
+  <button id="btnSensors">1. Activar Brújula</button>
+  <button id="btnBLE">2. Conectar GLM</button>
+  <button id="btnOrtho">ORTO: OFF</button>
+  <button id="btnDxf" disabled>Exportar DXF</button>
+  <button id="btnClear">Reset</button>
+</header>
+
+<div id="telemetry">
+  <span>Rumbo: <b id="lblHeading">--</b>°</span>
+  <span>Snap: <b id="lblSnapped">--</b>°</span>
+  <span>Dist: <b id="lblDist">0.000</b> m</span>
+  <span>Pts: <b id="lblPts">1</b></span>
+</div>
+
+<div id="canvas-box">
+  <canvas id="stage"></canvas>
+</div>
+
+<div id="log"></div>
+
 <script>
-  // UUIDs oficiales Bosch en minúsculas estrictas
-  const SERVICE_GLM = "00005301-0000-0041-4c53-53494e535452";
-  const CHAR_DATA   = "00004301-0000-0041-4c53-53494e535452";
+  // UUIDs conocidos de telémetros Bosch
+  const CANDIDATE_SERVICES = [
+    "00005301-0000-0041-4c53-53494e535452",
+    "00000001-0000-1000-8000-00805f9b34fb",
+    "00001801-0000-1000-8000-00805f9b34fb",
+    "00001800-0000-1000-8000-00805f9b34fb"
+  ];
 
   let currentHeading = 0;
   let orthoEnabled = false;
@@ -21,10 +120,26 @@
   const btnDxf = document.getElementById("btnDxf");
   const btnClear = document.getElementById("btnClear");
 
-  function log(msg) {
-    if (logDiv) {
-      logDiv.innerHTML += `<div>> ${msg}</div>`;
-      logDiv.scrollTop = logDiv.scrollHeight;
+  function log(msg, type = "info") {
+    const d = document.createElement("div");
+    d.className = `entry ${type}`;
+    const time = new Date().toLocaleTimeString().split(" ")[0];
+    d.textContent = `[${time}] ${msg}`;
+    logDiv.appendChild(d);
+    logDiv.scrollTop = logDiv.scrollHeight;
+  }
+
+  function logErrorDetails(err, stage) {
+    log(`FALLA EN ETAPA: ${stage}`, "err");
+    if (!err) {
+      log("Error devuelto: null / undefined (típico rechazo interno del plugin de Bluefy o desconexión por timeout)", "err");
+      return;
+    }
+    log(`Nombre: ${err.name || "N/A"}`, "err");
+    log(`Mensaje: ${err.message || "Sin mensaje descriptivo"}`, "err");
+    log(`Código: ${err.code || "N/A"}`, "err");
+    if (err.stack) {
+      log(`Stack: ${err.stack.split("\n")[0]}`, "warn");
     }
   }
 
@@ -45,14 +160,18 @@
           window.addEventListener("deviceorientation", handleOrientation, true);
           btnSensors.disabled = true;
           btnSensors.innerText = "Brújula OK";
+          log("Sensores de orientación activados.", "ok");
+        } else {
+          log("Permiso denegado por el usuario.", "err");
         }
-      } catch (err) {
-        log("Error brújula: " + (err ? (err.message || err) : "desconocido"));
+      } catch (e) {
+        logErrorDetails(e, "Permisos de Brújula");
       }
     } else {
       window.addEventListener("deviceorientation", handleOrientation, true);
       btnSensors.disabled = true;
       btnSensors.innerText = "Brújula OK";
+      log("Brújula enlazada directamente.", "ok");
     }
   });
 
@@ -76,34 +195,106 @@
     orthoEnabled = !orthoEnabled;
     btnOrtho.innerText = `ORTO: ${orthoEnabled ? "ON" : "OFF"}`;
     btnOrtho.classList.toggle("active", orthoEnabled);
+    log(`Modo Ortogonal: ${orthoEnabled ? "ON" : "OFF"}`);
   });
 
-  // 2. Conexión BLE compatible con Bluefy
+  // 2. Conexión BLE con escaneo y diagnóstico profundo
   btnBLE.addEventListener("click", async () => {
+    let currentStage = "Inicialización";
+    
+    if (!navigator.bluetooth) {
+      log("navigator.bluetooth NO existe en este navegador.", "err");
+      return;
+    }
+
     try {
-      log("Abriendo escáner BLE...");
+      currentStage = "Escaneo de Dispositivo";
+      log("Iniciando escaneo BLE...", "info");
 
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ namePrefix: "GLM" }],
-        optionalServices: [SERVICE_GLM]
+        acceptAllDevices: true,
+        optionalServices: CANDIDATE_SERVICES
       });
 
-      log(`Dispositivo vinculado: ${device.name}`);
-      log("Conectando al GATT...");
+      if (!device) {
+        throw new Error("No se seleccionó ningún dispositivo del diálogo.");
+      }
 
+      log(`Dispositivo: ${device.name || "Sin nombre"} | ID: ${device.id}`, "ok");
+
+      device.addEventListener("gattserverdisconnected", () => {
+        log("AVISO: El dispositivo se ha desconectado.", "warn");
+        btnBLE.disabled = false;
+        btnBLE.innerText = "2. Conectar GLM";
+        btnBLE.classList.remove("active");
+      });
+
+      currentStage = "Conexión GATT Server";
+      log("Conectando al servidor GATT...", "info");
       const server = await device.gatt.connect();
-      log("GATT conectado. Obteniendo servicio Bosch...");
+      log("Servidor GATT conectado.", "ok");
 
-      const service = await server.getPrimaryService(SERVICE_GLM);
-      log("Servicio obtenido. Buscando característica...");
+      currentStage = "Descubrimiento de Servicios";
+      log("Buscando servicios primarios...", "info");
 
-      const characteristic = await service.getCharacteristic(CHAR_DATA);
-      log("Característica obtenida. Activando notificaciones...");
+      let services = [];
+      try {
+        services = await server.getPrimaryServices();
+        log(`Servicios descubiertos: ${services.length}`, "ok");
+        services.forEach((s, idx) => log(`[Srv ${idx}] ${s.uuid}`, "info"));
+      } catch (svcErr) {
+        log(`getPrimaryServices() no permitido o falló: ${svcErr.message || svcErr}`, "warn");
+      }
 
-      await characteristic.startNotifications();
-      characteristic.addEventListener("characteristicvaluechanged", (e) => {
+      // Si getPrimaryServices falla, iterar candidatos de forma individual
+      let activeService = null;
+      if (services.length > 0) {
+        activeService = services.find(s => CANDIDATE_SERVICES.includes(s.uuid.toLowerCase())) || services[0];
+      } else {
+        for (const uuid of CANDIDATE_SERVICES) {
+          try {
+            currentStage = `Consulta directa de servicio ${uuid}`;
+            activeService = await server.getPrimaryService(uuid);
+            if (activeService) {
+              log(`Servicio obtenido de forma directa: ${uuid}`, "ok");
+              break;
+            }
+          } catch (ignore) {}
+        }
+      }
+
+      if (!activeService) {
+        throw new Error("No fue posible obtener ningún servicio utilizable en el telémetro.");
+      }
+
+      currentStage = `Lectura de Características del Servicio ${activeService.uuid}`;
+      log(`Explorando características en: ${activeService.uuid}...`, "info");
+      const characteristics = await activeService.getCharacteristics();
+      log(`Características encontradas: ${characteristics.length}`, "ok");
+
+      let notifyChar = null;
+      for (const c of characteristics) {
+        const p = c.properties;
+        log(`-> Char: ${c.uuid} | read:${p.read} write:${p.write || p.writeWithoutResponse} notify:${p.notify} indicate:${p.indicate}`, "info");
+        if ((p.notify || p.indicate) && !notifyChar) {
+          notifyChar = c;
+        }
+      }
+
+      if (!notifyChar) {
+        throw new Error("Ninguna característica del servicio admite notificaciones.");
+      }
+
+      currentStage = `Suscripción a Notificaciones en ${notifyChar.uuid}`;
+      log(`Suscribiendo a eventos en: ${notifyChar.uuid}...`, "info");
+      await notifyChar.startNotifications();
+      
+      notifyChar.addEventListener("characteristicvaluechanged", (e) => {
         const val = e.target.value;
-        if (val && val.byteLength >= 8) {
+        const rawHex = Array.from(new Uint8Array(val.buffer)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+        log(`RX Data (${val.byteLength}b): ${rawHex}`, "info");
+
+        if (val.byteLength >= 8) {
           const rawDist = val.getUint32(4, true);
           const meters = rawDist / 1000.0;
           if (meters > 0 && meters < 150) {
@@ -111,23 +302,26 @@
           }
         }
       });
+      log("Suscripción activa. Listo para recibir pulsos del GLM.", "ok");
 
-      // Secuencia de sincronización de reporte continuo Bosch
-      try {
-        await characteristic.writeValue(new Uint8Array([0xc0, 0x55, 0x02, 0x01, 0x00, 0x1a]));
-      } catch (wErr) {
-        // En algunos firmwares de GLM el write no es bloqueante
+      // Intento de envío de inicialización
+      if (notifyChar.properties.write || notifyChar.properties.writeWithoutResponse) {
+        try {
+          currentStage = "Comando de Inicialización Bosch";
+          await notifyChar.writeValue(new Uint8Array([0xc0, 0x55, 0x02, 0x01, 0x00, 0x1a]));
+          log("Comando de sincronización enviado correctamente.", "ok");
+        } catch (wErr) {
+          log(`Escritura de sincronización omitida: ${wErr.message || wErr}`, "warn");
+        }
       }
 
       btnBLE.disabled = true;
       btnBLE.innerText = "GLM Conectado";
       btnBLE.classList.add("active");
       btnDxf.disabled = false;
-      log("Listo. Realiza mediciones desde el botón del telémetro.");
 
     } catch (err) {
-      const errTxt = (err && err.message) ? err.message : (err ? String(err) : "Conexión cancelada o rechazada");
-      log(`Error BLE: ${errTxt}`);
+      logErrorDetails(err, currentStage);
     }
   });
 
@@ -147,9 +341,8 @@
     const next = { x: last.x + dx, y: last.y + dy };
     points.push(next);
 
-    if (lblPts) lblPts.innerText = points.length;
-    log(`Punto #${points.length}: ${distance.toFixed(3)}m @ ${angleDeg.toFixed(0)}°`);
-
+    lblPts.innerText = points.length;
+    log(`Punto #${points.length}: ${distance.toFixed(3)}m @ ${angleDeg.toFixed(0)}° -> (${next.x.toFixed(2)}, ${next.y.toFixed(2)})`, "ok");
     draw();
   }
 
@@ -220,14 +413,16 @@
     link.download = `levantamiento_${Date.now()}.dxf`;
     link.click();
     URL.revokeObjectURL(url);
-    log("DXF descargado.");
+    log("DXF generado y descargado.", "ok");
   });
 
   btnClear.addEventListener("click", () => {
     points = [{ x: 0, y: 0 }];
-    if (lblPts) lblPts.innerText = "1";
+    lblPts.innerText = "1";
     lblDist.innerText = "0.000";
     log("Trazado reiniciado.");
     draw();
   });
 </script>
+</body>
+</html>
