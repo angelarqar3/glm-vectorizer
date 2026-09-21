@@ -1,28 +1,24 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CAD Vectorizer - Bosch GLM 120 C</title>
+  <title>CAD Vectorizer Pro - Bosch GLM 120 C</title>
   <style>
     :root {
       --acad-bg: #1e1e1e;
       --acad-panel: #2d2d2d;
       --acad-border: #3f3f46;
-      --acad-crosshair: #d4d4d8;
       --acad-yellow: #facc15;
       --acad-cyan: #06b6d4;
       --acad-green: #22c55e;
       --acad-red: #ef4444;
       --acad-grid: #282828;
-      --acad-grid-major: #333333;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
     body { background: var(--acad-bg); color: #e4e4e7; font-family: 'Consolas', 'Courier New', monospace; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Barra Superior de Herramientas CAD */
     header {
       background: var(--acad-panel);
       border-bottom: 1px solid var(--acad-border);
@@ -47,6 +43,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      touch-action: manipulation;
     }
     .btn:active { background: #52525b; }
     .btn.active { background: #0284c7; border-color: #38bdf8; color: #fff; }
@@ -54,7 +51,6 @@
     .btn.danger { background: #991b1b; border-color: #ef4444; }
     .btn:disabled { background: #27272a; border-color: #3f3f46; color: #71717a; }
 
-    /* Barra de Estado / Telemetría */
     #status-bar {
       background: #18181b;
       border-bottom: 1px solid var(--acad-border);
@@ -66,7 +62,6 @@
     }
     .stat-val { color: var(--acad-yellow); font-weight: bold; }
 
-    /* Viewport CAD */
     #viewport-container {
       flex: 1;
       position: relative;
@@ -76,7 +71,6 @@
     }
     canvas { width: 100%; height: 100%; display: block; }
 
-    /* Línea de Comandos / Consola AutoCAD */
     #cmd-line {
       height: 95px;
       background: #09090b;
@@ -93,7 +87,6 @@
     .cmd-warn { color: var(--acad-yellow); }
     .cmd-err { color: var(--acad-red); }
 
-    /* Overlay selector de punto activo */
     #mode-indicator {
       position: absolute;
       top: 10px;
@@ -114,9 +107,9 @@
   <button id="btnSensors" class="btn">BRÚJULA</button>
   <button id="btnBLE" class="btn">CONECTAR GLM</button>
   <button id="btnOrtho" class="btn">F8 [ORTO: OFF]</button>
-  <button id="btnSetBase" class="btn">NUEVO ORIGEN</button>
-  <button id="btnFinish" class="btn danger">TERMINAR</button>
-  <button id="btnDxf" class="btn success" disabled>DXF</button>
+  <button id="btnSetBase" class="btn">REPOSICIONAR</button>
+  <button id="btnFinish" class="btn danger">CERRAR</button>
+  <button id="btnDxf" class="btn success" disabled>EXPORTAR DXF</button>
   <button id="btnClear" class="btn">RESET</button>
 </header>
 
@@ -128,28 +121,33 @@
 </div>
 
 <div id="viewport-container">
-  <div id="mode-indicator">ESTADO: ESPERANDO MEDIDOR</div>
+  <div id="mode-indicator">ESTADO: INICIALIZANDO</div>
   <canvas id="acadViewport"></canvas>
 </div>
 
 <div id="cmd-line">
-  <div class="cmd-entry"><span class="cmd-prompt">Comando:</span> INICIALIZANDO CAD VIEWPORT R12. EJECUTE EN BLUEFY (iOS).</div>
+  <div class="cmd-entry"><span class="cmd-prompt">Comando:</span> VIEWPORT INICIALIZADO. SELECCIONE BRÚJULA O FLECHAS MANUALES.</div>
 </div>
 
 <script>
   const SERVICE_DATA = "02A6C0D0-0451-4000-B000-FB3210111989";
   const CHAR_TX_RX   = "02A6C0D1-0451-4000-B000-FB3210111989";
 
-  let lines = []; // Almacena entidades: [{x1, y1, x2, y2, dist, angle}]
+  let lines = [];
   let activeBasePoint = { x: 0, y: 0 };
   let currentHeading = 0;
   let orthoEnabled = false;
   let isPickingOrigin = false;
   let isDrawingClosed = false;
+  let lastMeasuredDistance = 0.0;
 
-  // Parámetros de cámara / Pan / Zoom
+  // Transformaciones viewport
   let viewOffset = { x: 0, y: 0 };
-  let viewScale = 50.0; // Píxeles por metro
+  let viewScale = 45.0; // Píxeles por metro
+
+  // Dimensiones botones de flechas táctiles en pantalla
+  const ARROW_OFFSET = 55;
+  const ARROW_RADIUS = 22;
 
   const canvas = document.getElementById("acadViewport");
   const ctx = canvas.getContext("2d");
@@ -189,7 +187,7 @@
   window.addEventListener("resize", resizeCanvas);
   resizeCanvas();
 
-  // 1. Sensores de Orientación
+  // 1. Orientación iOS
   btnSensors.addEventListener("click", async () => {
     if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
       try {
@@ -198,16 +196,16 @@
           window.addEventListener("deviceorientation", handleOrientation, true);
           btnSensors.disabled = true;
           btnSensors.classList.add("success");
-          printCmd("BRUJULA ACTIVADA.", "cmd-ok");
+          printCmd("BRÚJULA HABILITADA.", "cmd-ok");
         }
       } catch (err) {
-        printCmd("ERR SENSOR: " + (err.message || err), "cmd-err");
+        printCmd("ERR BRÚJULA: " + (err.message || err), "cmd-err");
       }
     } else {
       window.addEventListener("deviceorientation", handleOrientation, true);
       btnSensors.disabled = true;
       btnSensors.classList.add("success");
-      printCmd("BRUJULA ENLAZADA.", "cmd-ok");
+      printCmd("BRÚJULA ENLAZADA DIRECTA.", "cmd-ok");
     }
   });
 
@@ -237,16 +235,16 @@
     renderScene();
   });
 
-  // Habilitar selección de nuevo punto de inserción (Pick Point)
+  // Reposicionar punto base
   btnSetBase.addEventListener("click", () => {
     if (isDrawingClosed) return;
     isPickingOrigin = !isPickingOrigin;
     btnSetBase.classList.toggle("active", isPickingOrigin);
-    modeInd.innerText = isPickingOrigin ? "SELECCIONE PUNTO EN PANTALLA" : "MODO CONTINUO ACTIVO";
-    printCmd(isPickingOrigin ? "INDIQUE NUEVO VÉRTICE DE INSERCIÓN:" : "SELECCIÓN CANCELADA.");
+    modeInd.innerText = isPickingOrigin ? "PULSE CUALQUIER LUGAR DEL VIEWPORT" : "MODO ACTIVO";
+    printCmd(isPickingOrigin ? "SELECCIONE COORDENADA DE INSERCIÓN EN PANTALLA:" : "CANCELADO.");
   });
 
-  // Interacción táctil con el canvas (Pick Point / Pan)
+  // Interacción Táctil (Pan + Pick Point + Clics en Flechas Manuales)
   let touchStartPos = { x: 0, y: 0 };
   let isDragging = false;
 
@@ -269,7 +267,7 @@
       const dx = currentX - touchStartPos.x;
       const dy = currentY - touchStartPos.y;
       
-      if (Math.hypot(dx, dy) > 5) {
+      if (Math.hypot(dx, dy) > 6) {
         isDragging = true;
         viewOffset.x += dx;
         viewOffset.y += dy;
@@ -280,8 +278,30 @@
   }, { passive: true });
 
   canvas.addEventListener("touchend", (e) => {
-    if (!isDragging && isPickingOrigin) {
-      // Convertir punto de pantalla a coordenadas CAD (metros)
+    if (isDragging) return;
+
+    const baseScr = worldToScreen(activeBasePoint.x, activeBasePoint.y);
+
+    // Detección de clics en las 4 flechas de dirección manual
+    if (!isDrawingClosed && !isPickingOrigin) {
+      const arrowHits = [
+        { dir: "UP",    angle: 0,   x: baseScr.x,                y: baseScr.y - ARROW_OFFSET },
+        { dir: "RIGHT", angle: 90,  x: baseScr.x + ARROW_OFFSET, y: baseScr.y },
+        { dir: "DOWN",  angle: 180, x: baseScr.x,                y: baseScr.y + ARROW_OFFSET },
+        { dir: "LEFT",  angle: 270, x: baseScr.x - ARROW_OFFSET, y: baseScr.y }
+      ];
+
+      for (const arrow of arrowHits) {
+        const d = Math.hypot(touchStartPos.x - arrow.x, touchStartPos.y - arrow.y);
+        if (d <= ARROW_RADIUS + 8) {
+          executeManualSegment(arrow.angle, arrow.dir);
+          return;
+        }
+      }
+    }
+
+    // Modo Pick Point
+    if (isPickingOrigin) {
       const worldX = (touchStartPos.x - viewOffset.x) / viewScale;
       const worldY = -(touchStartPos.y - viewOffset.y) / viewScale;
       
@@ -289,27 +309,55 @@
       isPickingOrigin = false;
       btnSetBase.classList.remove("active");
       modeInd.innerText = "MODO CONTINUO ACTIVO";
-      printCmd(`ORIGEN BASE REPOSICIONADO A: [X=${worldX.toFixed(3)}, Y=${worldY.toFixed(3)}]`, "cmd-ok");
+      printCmd(`ORIGEN REUBICADO A: [X=${worldX.toFixed(3)}, Y=${worldY.toFixed(3)}]`, "cmd-ok");
       renderScene();
     }
   });
 
-  // Terminar Trazado / Cerrar Polígono
-  btnFinish.addEventListener("click", () => {
-    if (lines.length < 2) {
-      printCmd("SE REQUIEREN AL MENOS 2 LÍNEAS PARA CERRAR POLÍGONO.", "cmd-warn");
+  // Generar línea en dirección manual forzada
+  function executeManualSegment(fixedAngleDeg, dirName) {
+    if (lastMeasuredDistance <= 0.001) {
+      printCmd("NO HAY DISTANCIA REGISTRADA. DISPARE PRIMERO EL TELÉMETRO.", "cmd-warn");
       return;
     }
-    
-    // Conectar el último vértice al primer vértice original
+
+    const dist = lastMeasuredDistance;
+    const rad = (90 - fixedAngleDeg) * (Math.PI / 180);
+    const targetX = activeBasePoint.x + dist * Math.cos(rad);
+    const targetY = activeBasePoint.y + dist * Math.sin(rad);
+
+    lines.push({
+      x1: activeBasePoint.x,
+      y1: activeBasePoint.y,
+      x2: targetX,
+      y2: targetY,
+      dist: dist,
+      angle: fixedAngleDeg
+    });
+
+    activeBasePoint = { x: targetX, y: targetY };
+    valLines.innerText = lines.length;
+    btnDxf.disabled = false;
+
+    printCmd(`LÍNEA MANUAL [${dirName}]: L=${dist.toFixed(3)}m @ ${fixedAngleDeg}°`, "cmd-ok");
+    fitView();
+    renderScene();
+  }
+
+  // Cerrar Polígono
+  btnFinish.addEventListener("click", () => {
+    if (lines.length < 2) {
+      printCmd("SE REQUIEREN MÍNIMO 2 VÉRTICES PARA CERRAR.", "cmd-warn");
+      return;
+    }
+
     const firstPt = { x: lines[0].x1, y: lines[0].y1 };
-    const lastPt = activeBasePoint;
-    const dist = Math.hypot(firstPt.x - lastPt.x, firstPt.y - lastPt.y);
+    const dist = Math.hypot(firstPt.x - activeBasePoint.x, firstPt.y - activeBasePoint.y);
 
     if (dist > 0.001) {
       lines.push({
-        x1: lastPt.x,
-        y1: lastPt.y,
+        x1: activeBasePoint.x,
+        y1: activeBasePoint.y,
         x2: firstPt.x,
         y2: firstPt.y,
         dist: dist,
@@ -320,21 +368,22 @@
 
     isDrawingClosed = true;
     modeInd.innerText = "POLÍGONO TERMINADO";
-    printCmd(`LEVANTAMIENTO FINALIZADO. ENTIDADES CERRADAS: ${lines.length}`, "cmd-ok");
     valLines.innerText = lines.length;
+    btnDxf.disabled = false;
+    printCmd(`LEVANTAMIENTO CERRADO. LÍNEAS TOTALES: ${lines.length}`, "cmd-ok");
     renderScene();
   });
 
-  // 2. Conexión BLE con GLM 120 C
+  // Conexión BLE
   btnBLE.addEventListener("click", async () => {
     try {
-      printCmd("BUSCANDO GLM 120 C VÍA BLE...");
+      printCmd("ESCANEANDO DISPOSITIVO BLE...");
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
         optionalServices: [SERVICE_DATA, SERVICE_DATA.toLowerCase()]
       });
 
-      printCmd(`VINCULADO: ${device.name}`);
+      printCmd(`ENLAZANDO: ${device.name}`);
       const server = await device.gatt.connect();
 
       let service;
@@ -357,7 +406,6 @@
         }
       });
 
-      // Handshake inicial
       try {
         await char.writeValue(new Uint8Array([0xc0, 0x55, 0x02, 0x01, 0x00, 0x1a]));
       } catch (w) {}
@@ -365,30 +413,29 @@
       btnBLE.disabled = true;
       btnBLE.classList.add("success");
       btnBLE.innerText = "GLM ONLINE";
-      btnDxf.disabled = false;
-      modeInd.innerText = "DISPOSITIVO CONECTADO - APUNTE Y DISPARE";
-      printCmd("ENLACE BLE ESTABLECIDO CON ÉXITO.", "cmd-ok");
+      modeInd.innerText = "MEDIDOR EN LÍNEA";
+      printCmd("GLM 120 C CONECTADO. DISPARE O USE FLECHAS MANUALES.", "cmd-ok");
 
     } catch (err) {
-      printCmd("FALLA CONEXIÓN: " + (err.message || err), "cmd-err");
+      printCmd("FALLA BLE: " + (err.message || err), "cmd-err");
     }
   });
 
-  // Procesamiento de Medición
   function handleMeasurement(dist) {
+    lastMeasuredDistance = dist;
+    valDist.innerText = dist.toFixed(3) + "m";
+
     if (isDrawingClosed) {
-      printCmd("EL DIBUJO YA ESTÁ TERMINADO. REINICIE PARA NUEVO TRAZO.", "cmd-warn");
+      printCmd(`LECTURA RECIBIDA: ${dist.toFixed(3)}m (DIBUJO CERRADO)`, "cmd-warn");
       return;
     }
 
-    valDist.innerText = dist.toFixed(3) + "m";
-
+    // Si la brújula está activa se genera el trazo continuo; si no, espera uso de flecha
     let angle = currentHeading;
     if (orthoEnabled) {
       angle = Math.round(angle / 90) * 90 % 360;
     }
 
-    // Proyección polar a coordenadas cartesianas locales (0° Norte)
     const rad = (90 - angle) * (Math.PI / 180);
     const targetX = activeBasePoint.x + dist * Math.cos(rad);
     const targetY = activeBasePoint.y + dist * Math.sin(rad);
@@ -404,15 +451,13 @@
 
     activeBasePoint = { x: targetX, y: targetY };
     valLines.innerText = lines.length;
+    btnDxf.disabled = false;
 
-    printCmd(`LÍNEA REGISTRADA: L=${dist.toFixed(3)}m @ ${angle.toFixed(0)}° -> [${targetX.toFixed(2)}, ${targetY.toFixed(2)}]`, "cmd-ok");
-    
-    // Auto-centrado suave si sale de la vista
+    printCmd(`MEDICIÓN: L=${dist.toFixed(3)}m @ ${angle.toFixed(0)}°`, "cmd-ok");
     fitView();
     renderScene();
   }
 
-  // Conversión de coordenadas Mundo (m) a Pantalla (px)
   function worldToScreen(wx, wy) {
     return {
       x: viewOffset.x + wx * viewScale,
@@ -420,7 +465,6 @@
     };
   }
 
-  // Ajuste automático de encuadre
   function fitView() {
     if (lines.length === 0) return;
     let minX = activeBasePoint.x, maxX = activeBasePoint.x;
@@ -435,42 +479,38 @@
 
     const spanX = Math.max(maxX - minX, 1.0);
     const spanY = Math.max(maxY - minY, 1.0);
-    const pad = 60;
+    const pad = 80;
 
     viewScale = Math.min(
       (canvas.width - pad * 2) / spanX,
       (canvas.height - pad * 2) / spanY
     );
-    viewScale = Math.max(10, Math.min(viewScale, 200));
+    viewScale = Math.max(8, Math.min(viewScale, 200));
 
     viewOffset.x = canvas.width / 2 - ((minX + maxX) / 2) * viewScale;
     viewOffset.y = canvas.height / 2 + ((minY + maxY) / 2) * viewScale;
   }
 
-  // Motor de Renderizado Estilo AutoCAD
   function renderScene() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Rejilla CAD ortogonal
     drawGrid();
 
-    // 2. Líneas consolidadas
+    // Líneas
     ctx.lineWidth = 2.0;
-    lines.forEach((l, idx) => {
+    lines.forEach((l) => {
       const p1 = worldToScreen(l.x1, l.y1);
       const p2 = worldToScreen(l.x2, l.y2);
 
-      ctx.strokeStyle = "#00ffff"; // Cyan AutoCAD
+      ctx.strokeStyle = "#00ffff";
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
       ctx.stroke();
 
-      // Vértice inicial
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(p1.x - 2.5, p1.y - 2.5, 5, 5);
 
-      // Cota de texto en el punto medio
       const midX = (p1.x + p2.x) / 2;
       const midY = (p1.y + p2.y) / 2;
       ctx.fillStyle = "#facc15";
@@ -478,16 +518,21 @@
       ctx.fillText(`${l.dist.toFixed(2)}m`, midX + 5, midY - 5);
     });
 
-    // 3. Puntero AutoCAD y Flecha de Orientación Dinámica
     const baseScr = worldToScreen(activeBasePoint.x, activeBasePoint.y);
-    drawCrosshairAndPointer(baseScr.x, baseScr.y);
 
-    // 4. Eje de Coordenadas UCS (Esquina Inferior Izquierda)
+    // Retículo CAD y Flecha de Orientación Dinámica
+    drawCrosshairAndCompassVector(baseScr.x, baseScr.y);
+
+    // 4 Flechas Ortogonales Táctiles de Dirección
+    if (!isDrawingClosed) {
+      drawDirectionPointers(baseScr.x, baseScr.y);
+    }
+
     drawUCS();
   }
 
   function drawGrid() {
-    const step = viewScale; // 1 metro por celda
+    const step = viewScale;
     ctx.lineWidth = 0.5;
     ctx.strokeStyle = "#262626";
 
@@ -496,46 +541,40 @@
 
     ctx.beginPath();
     for (let x = startX; x < canvas.width; x += step) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
+      ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
     }
     for (let y = startY; y < canvas.height; y += step) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
+      ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
     }
     ctx.stroke();
   }
 
-  function drawCrosshairAndPointer(cx, cy) {
-    // Crosshair CAD centrado en el vértice activo
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+  function drawCrosshairAndCompassVector(cx, cy) {
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
     ctx.lineWidth = 1;
 
-    // Líneas infinitas del retículo
     ctx.beginPath();
     ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy);
     ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height);
     ctx.stroke();
 
-    // Caja de captura central (Pickbox)
     ctx.strokeStyle = "#ffffff";
     ctx.strokeRect(cx - 5, cy - 5, 10, 10);
 
     if (isDrawingClosed) return;
 
-    // Vector de Orientación en tiempo real (Flecha Dinámica)
+    // Vector de brújula
     let angle = currentHeading;
     if (orthoEnabled) {
       angle = Math.round(angle / 90) * 90 % 360;
     }
     const rad = (90 - angle) * (Math.PI / 180);
-    const arrowLen = 50; // Longitud en píxeles
+    const arrowLen = 65;
 
     const tx = cx + arrowLen * Math.cos(rad);
     const ty = cy - arrowLen * Math.sin(rad);
 
-    // Línea guía elástica discontinua
-    ctx.strokeStyle = "#ef4444"; // Rojo vector
+    ctx.strokeStyle = "#ef4444";
     ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
@@ -544,29 +583,48 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Cabeza de la flecha
-    const headLen = 10;
+    const headLen = 9;
     const angleOffset = Math.PI / 7;
     const tipAngle = Math.atan2(cy - ty, tx - cx);
 
     ctx.fillStyle = "#ef4444";
     ctx.beginPath();
     ctx.moveTo(tx, ty);
-    ctx.lineTo(
-      tx - headLen * Math.cos(tipAngle - angleOffset),
-      ty + headLen * Math.sin(tipAngle - angleOffset)
-    );
-    ctx.lineTo(
-      tx - headLen * Math.cos(tipAngle + angleOffset),
-      ty + headLen * Math.sin(tipAngle + angleOffset)
-    );
+    ctx.lineTo(tx - headLen * Math.cos(tipAngle - angleOffset), ty + headLen * Math.sin(tipAngle - angleOffset));
+    ctx.lineTo(tx - headLen * Math.cos(tipAngle + angleOffset), ty + headLen * Math.sin(tipAngle + angleOffset));
     ctx.closePath();
     ctx.fill();
+  }
 
-    // Etiqueta flotante con rumbo y longitud estimada
-    ctx.fillStyle = "#22c55e";
-    ctx.font = "11px monospace";
-    ctx.fillText(`${angle.toFixed(0)}°`, tx + 8, ty + 4);
+  // Renderizado de las 4 flechas táctiles de dirección manual
+  function drawDirectionPointers(cx, cy) {
+    const arrows = [
+      { label: "▲ N", x: cx, y: cy - ARROW_OFFSET },
+      { label: "▶ E", x: cx + ARROW_OFFSET, y: cy },
+      { label: "▼ S", x: cx, y: cy + ARROW_OFFSET },
+      { label: "◀ O", x: cx - ARROW_OFFSET, y: cy }
+    ];
+
+    arrows.forEach(a => {
+      // Botón circular
+      ctx.fillStyle = "rgba(30, 41, 59, 0.85)";
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, ARROW_RADIUS, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Texto de dirección
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 9px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(a.label, a.x, a.y);
+    });
+
+    ctx.textAlign = "start";
+    ctx.textBaseline = "alphabetic";
   }
 
   function drawUCS() {
@@ -575,13 +633,11 @@
     const len = 22;
 
     ctx.lineWidth = 2;
-    // Eje X (Rojo)
     ctx.strokeStyle = "#ef4444";
     ctx.beginPath();
     ctx.moveTo(ox, oy); ctx.lineTo(ox + len, oy);
     ctx.stroke();
 
-    // Eje Y (Verde)
     ctx.strokeStyle = "#22c55e";
     ctx.beginPath();
     ctx.moveTo(ox, oy); ctx.lineTo(ox, oy - len);
@@ -593,9 +649,12 @@
     ctx.fillText("Y", ox - 3, oy - len - 3);
   }
 
-  // Exportación DXF R12
-  btnDxf.addEventListener("click", () => {
-    if (lines.length === 0) return;
+  // Exportador DXF compatible con iOS (Web Share API + Descarga forzada)
+  btnDxf.addEventListener("click", async () => {
+    if (lines.length === 0) {
+      printCmd("NO HAY ENTIDADES PARA EXPORTAR.", "cmd-warn");
+      return;
+    }
 
     let dxf = "0\nSECTION\n2\nENTITIES\n";
     lines.forEach(l => {
@@ -605,33 +664,64 @@
     });
     dxf += "0\nENDSEC\n0\nEOF\n";
 
+    const fileName = `PLANO_${Date.now()}.dxf`;
     const blob = new Blob([dxf], { type: "application/dxf" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `PLANO_${Date.now()}.dxf`;
-    link.click();
-    URL.revokeObjectURL(url);
-    printCmd("ARCHIVO DXF EXPORTADO CORRECTAMENTE.", "cmd-ok");
+
+    // 1. Estrategia primaria para iOS: navigator.share (permite guardar en "Archivos", AirDrop o Correo)
+    try {
+      const file = new File([blob], fileName, { type: "application/dxf" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "Levantamiento GLM 120 C",
+          text: `Exportación DXF: ${lines.length} entidades.`
+        });
+        printCmd("COMPARTIDO EXITOSO (GUARDADO EN ARCHIVOS/AIRDROP).", "cmd-ok");
+        return;
+      }
+    } catch (shareErr) {
+      if (shareErr.name !== "AbortError") {
+        printCmd("SHARE RECHAZADO, USANDO DESCARGA ALTERNATIVA...", "cmd-warn");
+      } else {
+        return;
+      }
+    }
+
+    // 2. Estrategia secundaria: Data URI directo (compatible con navegadores BLE como Bluefy)
+    try {
+      const reader = new FileReader();
+      reader.onload = function() {
+        const link = document.createElement("a");
+        link.href = reader.result;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        printCmd(`DXF GENERADO: ${fileName}`, "cmd-ok");
+      };
+      reader.readAsDataURL(blob);
+    } catch (dErr) {
+      printCmd("ERROR DE DESCARGA: " + dErr.message, "cmd-err");
+    }
   });
 
-  // Reiniciar levantamiento
+  // Reiniciar
   btnClear.addEventListener("click", () => {
     lines = [];
     activeBasePoint = { x: 0, y: 0 };
     isDrawingClosed = false;
     isPickingOrigin = false;
+    lastMeasuredDistance = 0.0;
     valLines.innerText = "0";
     valDist.innerText = "0.000m";
     btnSetBase.classList.remove("active");
-    modeInd.innerText = "ESPERANDO MEDIDOR";
+    btnDxf.disabled = true;
+    modeInd.innerText = "VIEWPORT REINICIADO";
     viewOffset = { x: canvas.width / 2, y: canvas.height / 2 };
-    viewScale = 50.0;
-    printCmd("SISTEMA RESETEADO AL ORIGEN (0,0).", "cmd-warn");
+    viewScale = 45.0;
+    printCmd("SISTEMA RESETEADO.", "cmd-warn");
     renderScene();
   });
 </script>
 </body>
 </html>
-
-```
