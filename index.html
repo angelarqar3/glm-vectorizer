@@ -514,20 +514,6 @@ const TEXT_DRAG_THRESHOLD = 6;
 
 /* ============================================================
    ▶ MÓDULO DE EXPORTACIÓN DXF (independiente)
-   ------------------------------------------------------------
-   API pública:
-     DXFExporter.export(model, options)  → Promise<{ok, fname, reason}>
-     DXFExporter.build(model, options)   → string (contenido DXF)
-     DXFExporter.setLayers(layers)
-     DXFExporter.setFonts({ mono, sans })
-
-   Formato: DXF R12 (AC1009).
-   ------------------------------------------------------------
-   NOTA SOBRE FUENTES:
-     DXF no incrusta fuentes — solo guarda NOMBRES de archivo.
-     Al abrir el DXF, la CAD local resuelve la fuente desde su SO.
-     Si no la encuentra, sustituye por su default (no rompe).
-     Por defecto: consolas.ttf (mono) / arial.ttf (sans).
    ============================================================ */
 const DXFExporter = (() => {
 
@@ -683,7 +669,6 @@ const DXFExporter = (() => {
     }
   }
 
-  /* Dimensiones: SOLO el número (sin líneas ni ticks) */
   function _writeDimensions(w, model, cfg, layers) {
     const L = layers.COTAS.name;
     for (const l of model.lines || []) {
@@ -850,17 +835,14 @@ const S = {
   selectedLineIdx: -1,
   editMode: 'idle',
   movingEnd: null,
-  // Texto
   textMode: 'idle',
   pendingTextPos: null,
   editingTextIdx: -1,
   defaultTextSize: 0.25,
-  // Arrastre de textos
   draggingText: null,
   textDragMoved: false,
   textDragStart: null,
-  // Umbrales de auto-cotizado
-  dimMinScreenLen: 55,     // px — ocultar si el segmento en pantalla es más corto
+  dimMinScreenLen: 55,
 };
 const INIT_SCALE = 50;
 const DIAL_R = 56;
@@ -1411,7 +1393,6 @@ function paint() {
   const r = S.view.s;
   const lw = Math.max(1.5, Math.min(3, r / 40));
 
-  /* --- Rectángulos ya ocupados por cotas (para auto-overlap) --- */
   const drawnDimRects = [];
 
   for (let i = 0; i < S.lines.length; i++) {
@@ -1441,7 +1422,6 @@ function paint() {
       const screenLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
       let show = true;
 
-      // Filtro de tamaño mínimo
       if (S.dimMode === 'auto' && screenLen < S.dimMinScreenLen) {
         show = false;
       }
@@ -1455,7 +1435,6 @@ function paint() {
         const lx = mx - tw / 2;
         const ly = my - 14 - th / 2;
 
-        // Filtro de overlap (solo en modo auto)
         if (S.dimMode === 'auto') {
           for (const rc of drawnDimRects) {
             if (lx < rc.x + rc.w && lx + tw > rc.x &&
@@ -1473,7 +1452,6 @@ function paint() {
       }
     }
 
-    // Badge de edición siempre visible
     if (isSel && !isMoving) {
       const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
       drawEditDistanceBadge(mx, my, l.dist);
@@ -2489,7 +2467,11 @@ function updateAngleFromPoint(sx, sy, bp) {
 }
 
 /* ============================================================
-   BLE
+   BLE — Bosch GLM 120 C
+   ------------------------------------------------------------
+   FIX: filtramos por Service UUID para que el diálogo nativo
+   muestre SOLO el GLM en lugar de todos los dispositivos BLE
+   cercanos con sus IDs codificados.
    ============================================================ */
 async function connectBLE() {
   if (S.ble.on) { disconnectBLE(); return; }
@@ -2500,10 +2482,17 @@ async function connectBLE() {
   ui.stat.textContent = 'Buscando…';
 
   try {
+    // ✅ Filtro por Service UUID → solo el GLM aparece en el diálogo
     const dev = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
+      filters: [
+        { services: [SERVICE_DATA] },
+        { services: [SERVICE_DATA.toLowerCase()] },
+        { namePrefix: 'GLM' },
+        { namePrefix: 'BOSCH' },
+      ],
       optionalServices: [SERVICE_DATA, SERVICE_DATA.toLowerCase()],
     });
+
     S.ble.dev = dev;
     dev.addEventListener('gattserverdisconnected', onDisconnected);
 
@@ -2524,10 +2513,22 @@ async function connectBLE() {
       await chr.writeValue(new Uint8Array([0xc0, 0x55, 0x02, 0x01, 0x00, 0x1a]));
     } catch (_) {}
 
+    // Intentar leer el nombre real desde el GAP service
+    let displayName = dev.name;
+    if (!displayName) {
+      try {
+        const gapSrv = await srv.getPrimaryService('generic_access');
+        const nameChar = await gapSrv.getCharacteristic('gap.device_name');
+        const val = await nameChar.readValue();
+        displayName = new TextDecoder().decode(val).replace(/\0/g, '').trim();
+      } catch (_) {}
+    }
+    if (!displayName) displayName = 'GLM 120 C';
+
     S.ble.on = true; S.ble.busy = false;
     ui.dot.className = 'dot on';
     ui.stat.textContent = 'GLM conectado';
-    ui.bleSub.textContent = dev.name || 'GLM 120 C';
+    ui.bleSub.textContent = displayName;
     ui.bleState.textContent = 'ON';
     ui.bleState.style.color = 'var(--ok)';
     toast('GLM conectado', 'ok');
@@ -2536,7 +2537,14 @@ async function connectBLE() {
     S.ble.busy = false;
     ui.dot.className = 'dot';
     ui.stat.textContent = '—';
-    if (err && err.name !== 'NotFoundError') toast('Error de conexión', 'err');
+    if (err && err.name === 'NotFoundError') {
+      // Usuario canceló el diálogo → silencio
+    } else if (err && err.name === 'SecurityError') {
+      toast('Permisos BLE denegados', 'err');
+    } else {
+      toast('Error de conexión', 'err');
+      console.error('[BLE]', err);
+    }
   }
 }
 
@@ -2601,7 +2609,7 @@ async function enableCompass() {
 }
 
 /* ============================================================
-   EXPORTACIÓN — puente al módulo
+   EXPORTACIÓN
    ============================================================ */
 async function exportDXF() {
   await DXFExporter.export(
@@ -2762,7 +2770,6 @@ ui.chipSnap.onclick = () => {
   toast(names[S.snapMode]);
 };
 
-/* --- Chip COTAS: cicla AUTO → ON → OFF → AUTO --- */
 ui.chipDims.onclick = () => {
   const order = ['auto', 'on', 'off'];
   const i = (order.indexOf(S.dimMode) + 1) % order.length;
