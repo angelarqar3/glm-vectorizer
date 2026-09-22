@@ -322,6 +322,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="chips">
     <button class="chip on" id="chipOrtho">◱ ORTO</button>
     <button class="chip" id="chipSnap">∠ SNAP 90°</button>
+    <button class="chip on" id="chipDims">📐 COTAS: AUTO</button>
     <button class="chip text-mode" id="chipText" style="display:none">✎ TEXTO · TOCA EL LIENZO</button>
   </div>
 
@@ -454,6 +455,10 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
       <div class="opt-l"><div class="opt-ic">▦</div><div>Cuadrícula</div></div>
       <div class="opt-val" id="gridVal">ON</div>
     </div>
+    <div class="opt" id="optDims">
+      <div class="opt-l"><div class="opt-ic">📐</div><div><div>Cotas en pantalla</div><div class="opt-sub" id="dimsSub">Auto (oculta al superponerse)</div></div></div>
+      <div class="opt-val" id="dimsVal">AUTO</div>
+    </div>
     <div class="opt" id="optMagnet">
       <div class="opt-l"><div class="opt-ic">🧲</div><div><div>Imán de vértices</div><div class="opt-sub" id="magSub">Radio 30 px</div></div></div>
       <div class="opt-val" id="magVal">30</div>
@@ -513,51 +518,51 @@ const TEXT_DRAG_THRESHOLD = 6;
    API pública:
      DXFExporter.export(model, options)  → Promise<{ok, fname, reason}>
      DXFExporter.build(model, options)   → string (contenido DXF)
+     DXFExporter.setLayers(layers)
+     DXFExporter.setFonts({ mono, sans })
 
-   Dependencias externas (inyectables):
-     - toast(msg, kind)      opcional, para feedback al usuario
-     - onDownload(blob, name) opcional, sobrescribe el guardado por defecto
-
-   Configuración de capas:
-     - DXFExporter.setLayers({ MUROS:{aci:4}, ... })
-     - Por defecto usa las capas incorporadas (DEFAULT_LAYERS)
-
-   Formato: DXF R12 (AC1009) — universal, sin HANDLES ni STRUCTURE.
-   Para extender: añadir métodos _writeX(...) y llamarlos en build().
+   Formato: DXF R12 (AC1009).
+   ------------------------------------------------------------
+   NOTA SOBRE FUENTES:
+     DXF no incrusta fuentes — solo guarda NOMBRES de archivo.
+     Al abrir el DXF, la CAD local resuelve la fuente desde su SO.
+     Si no la encuentra, sustituye por su default (no rompe).
+     Por defecto: consolas.ttf (mono) / arial.ttf (sans).
    ============================================================ */
 const DXFExporter = (() => {
 
-  /* ---------- Capas por defecto ---------- */
   const DEFAULT_LAYERS = {
-    MUROS:    { name: 'MUROS',    aci: 4 },  // cyan
-    COTAS:    { name: 'COTAS',    aci: 2 },  // amarillo
-    TEXTOS:   { name: 'TEXTOS',   aci: 6 },  // magenta
-    VERTICES: { name: 'VERTICES', aci: 7 },  // blanco
-    EJES:     { name: 'EJES',     aci: 1 },  // rojo
+    MUROS:    { name: 'MUROS',    aci: 4 },
+    COTAS:    { name: 'COTAS',    aci: 2 },
+    TEXTOS:   { name: 'TEXTOS',   aci: 6 },
+    VERTICES: { name: 'VERTICES', aci: 7 },
+    EJES:     { name: 'EJES',     aci: 1 },
   };
 
-  /* ---------- Opciones por defecto ---------- */
+  const DEFAULT_FONTS = {
+    mono: 'consolas.ttf',
+    sans: 'arial.ttf',
+  };
+
   const DEFAULTS = {
-    version: 'AC1009',               // R12
-    dimOffset: 0.30,                 // distancia perpendicular de la línea de cota
-    dimGap:    0.08,                 // gap entre extremo y línea de extensión
-    dimTick:   0.10,                 // media longitud del tick diagonal
-    dimTextH:  0.18,                 // altura del texto de cota
-    axisLen:   0.50,                 // longitud de la cruz en el origen
-    extMargin: 0.50,                 // margen de extents
-    layers: null,                    // si null → DEFAULT_LAYERS
-    toastFn: null,                   // función toast(msg, kind)
-    onDownload: null,                // (blob, fname) => Promise|void
+    version: 'AC1009',
+    dimTextH: 0.18,
+    dimOffset: 0.30,
+    axisLen: 0.50,
+    extMargin: 0.50,
+    layers: null,
+    fonts: null,
+    toastFn: null,
+    onDownload: null,
   };
 
-  /* ---------- Helpers ---------- */
   const n4 = v => Number.isFinite(v) ? v.toFixed(4) : '0.0000';
 
   function sanitizeText(s) {
     return String(s || '')
       .replace(/\r?\n/g, ' ')
       .replace(/[\x00-\x1F]/g, '')
-      .slice(0, 250); // límite DXF razonable
+      .slice(0, 250);
   }
 
   function computeExtents(model, margin) {
@@ -580,16 +585,10 @@ const DXFExporter = (() => {
     }
     if (first) { mnx = 0; mny = 0; mxx = 100; mxy = 100; }
     return {
-      mnx: mnx - margin,
-      mny: mny - margin,
-      mxx: mxx + margin,
-      mxy: mxy + margin,
+      mnx: mnx - margin, mny: mny - margin,
+      mxx: mxx + margin, mxy: mxy + margin,
     };
   }
-
-  /* ============================================================
-     SECCIONES DEL DXF
-     ============================================================ */
 
   function writeHeader(w, ext) {
     w('0\nSECTION\n2\nHEADER\n');
@@ -610,16 +609,14 @@ const DXFExporter = (() => {
     w('0\nENDSEC\n');
   }
 
-  function writeTables(w, layers) {
+  function writeTables(w, layers, fonts) {
     w('0\nSECTION\n2\nTABLES\n');
 
-    // LTYPE
     w('0\nTABLE\n2\nLTYPE\n70\n1\n');
     w('0\nLTYPE\n2\nCONTINUOUS\n70\n64\n');
     w('3\nSolid line\n72\n65\n73\n0\n40\n0.0\n');
     w('0\nENDTAB\n');
 
-    // LAYER
     const keys = Object.keys(layers);
     w(`0\nTABLE\n2\nLAYER\n70\n${keys.length}\n`);
     for (const k of keys) {
@@ -628,35 +625,34 @@ const DXFExporter = (() => {
     }
     w('0\nENDTAB\n');
 
-    // STYLE
-    w('0\nTABLE\n2\nSTYLE\n70\n1\n');
+    w('0\nTABLE\n2\nSTYLE\n70\n2\n');
+
+    w('0\nSTYLE\n2\nMONO\n70\n0\n');
+    w('40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n0.2\n');
+    w(`3\n${fonts.mono}\n4\n\n`);
+
     w('0\nSTYLE\n2\nSTANDARD\n70\n0\n');
     w('40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n0.2\n');
-    w('3\ntxt\n4\n\n');
-    w('0\nENDTAB\n');
+    w(`3\n${fonts.sans}\n4\n\n`);
 
+    w('0\nENDTAB\n');
     w('0\nENDSEC\n');
   }
 
   function writeBlocks(w) {
-    // Sección obligatoria aunque sea vacía
     w('0\nSECTION\n2\nBLOCKS\n');
     w('0\nENDSEC\n');
   }
 
   function writeEntities(w, model, cfg, layers) {
     w('0\nSECTION\n2\nENTITIES\n');
-
     _writeVertices(w, model, layers);
     _writeWalls(w, model, layers);
     _writeDimensions(w, model, cfg, layers);
     _writeUserTexts(w, model, layers);
     _writeAxes(w, cfg, layers);
-
     w('0\nENDSEC\n');
   }
-
-  /* ---------- Sub-writers (extensibles) ---------- */
 
   function _writeVertices(w, model, layers) {
     const seen = new Set();
@@ -687,6 +683,7 @@ const DXFExporter = (() => {
     }
   }
 
+  /* Dimensiones: SOLO el número (sin líneas ni ticks) */
   function _writeDimensions(w, model, cfg, layers) {
     const L = layers.COTAS.name;
     for (const l of model.lines || []) {
@@ -694,61 +691,24 @@ const DXFExporter = (() => {
       const len = Math.hypot(dx, dy);
       if (len < 1e-9) continue;
       const ux = dx / len, uy = dy / len;
-      const px = -uy, py = ux;
 
-      const a = { x: l.x1 + px * cfg.dimOffset, y: l.y1 + py * cfg.dimOffset };
-      const b = { x: l.x2 + px * cfg.dimOffset, y: l.y2 + py * cfg.dimOffset };
+      let nx = -uy, ny = ux;
+      if (ny < 0) { nx = -nx; ny = -ny; }
 
-      // Línea de extensión 1
-      const a1 = { x: l.x1 + px * cfg.dimGap, y: l.y1 + py * cfg.dimGap };
-      const a2 = { x: a.x + px * cfg.dimGap * .6, y: a.y + py * cfg.dimGap * .6 };
-      w(`0\nLINE\n8\n${L}\n`);
-      w(`10\n${n4(a1.x)}\n20\n${n4(a1.y)}\n30\n0.0\n`);
-      w(`11\n${n4(a2.x)}\n21\n${n4(a2.y)}\n31\n0.0\n`);
+      const mx = (l.x1 + l.x2) / 2 + nx * cfg.dimOffset;
+      const my = (l.y1 + l.y2) / 2 + ny * cfg.dimOffset;
 
-      // Línea de extensión 2
-      const b1 = { x: l.x2 + px * cfg.dimGap, y: l.y2 + py * cfg.dimGap };
-      const b2 = { x: b.x + px * cfg.dimGap * .6, y: b.y + py * cfg.dimGap * .6 };
-      w(`0\nLINE\n8\n${L}\n`);
-      w(`10\n${n4(b1.x)}\n20\n${n4(b1.y)}\n30\n0.0\n`);
-      w(`11\n${n4(b2.x)}\n21\n${n4(b2.y)}\n31\n0.0\n`);
-
-      // Línea de cota paralela
-      w(`0\nLINE\n8\n${L}\n`);
-      w(`10\n${n4(a.x)}\n20\n${n4(a.y)}\n30\n0.0\n`);
-      w(`11\n${n4(b.x)}\n21\n${n4(b.y)}\n31\n0.0\n`);
-
-      // Ticks diagonales en extremos
-      const tx = -ux * cfg.dimTick - px * cfg.dimTick * 0.5;
-      const ty = -uy * cfg.dimTick - py * cfg.dimTick * 0.5;
-      const tx2 = ux * cfg.dimTick + px * cfg.dimTick * 0.5;
-      const ty2 = uy * cfg.dimTick + py * cfg.dimTick * 0.5;
-
-      w(`0\nLINE\n8\n${L}\n`);
-      w(`10\n${n4(a.x - tx)}\n20\n${n4(a.y - ty)}\n30\n0.0\n`);
-      w(`11\n${n4(a.x + tx2)}\n21\n${n4(a.y + ty2)}\n31\n0.0\n`);
-
-      w(`0\nLINE\n8\n${L}\n`);
-      w(`10\n${n4(b.x - tx)}\n20\n${n4(b.y - ty)}\n30\n0.0\n`);
-      w(`11\n${n4(b.x + tx2)}\n21\n${n4(b.y + ty2)}\n31\n0.0\n`);
-
-      // Texto con la distancia
       let angle = l.angle;
       if (angle > 90 && angle < 270) angle -= 180;
 
-      const mx = (a.x + b.x) / 2;
-      const my = (a.y + b.y) / 2;
-      const ox = px * 0.08;
-      const oy = py * 0.08;
-
       w(`0\nTEXT\n8\n${L}\n`);
-      w(`10\n${n4(mx + ox)}\n20\n${n4(my + oy)}\n30\n0.0\n`);
+      w(`10\n${n4(mx)}\n20\n${n4(my)}\n30\n0.0\n`);
       w(`40\n${cfg.dimTextH.toFixed(4)}\n`);
       w(`1\n${l.dist.toFixed(3)}m\n`);
       w(`50\n${angle.toFixed(2)}\n`);
-      w('7\nSTANDARD\n');
+      w('7\nMONO\n');
       w('72\n1\n73\n2\n');
-      w(`11\n${n4(mx + ox)}\n21\n${n4(my + oy)}\n31\n0.0\n`);
+      w(`11\n${n4(mx)}\n21\n${n4(my)}\n31\n0.0\n`);
     }
   }
 
@@ -778,27 +738,17 @@ const DXFExporter = (() => {
     w(`11\n0.0\n21\n${n4(a)}\n31\n0.0\n`);
   }
 
-  /* ============================================================
-     API PÚBLICA
-     ============================================================ */
-
-  /**
-   * Genera el contenido DXF como string.
-   * @param {Object} model  { lines:[{x1,y1,x2,y2,dist,angle}], texts:[{x,y,content,size,angle}] }
-   * @param {Object} options Overrides de DEFAULTS
-   * @returns {string}
-   */
   function build(model, options = {}) {
     const cfg = { ...DEFAULTS, ...options };
     const layers = cfg.layers || DEFAULT_LAYERS;
-
+    const fonts = cfg.fonts || DEFAULT_FONTS;
     const ext = computeExtents(model, cfg.extMargin);
 
     let out = '';
     const w = s => { out += s; };
 
     writeHeader(w, ext);
-    writeTables(w, layers);
+    writeTables(w, layers, fonts);
     writeBlocks(w);
     writeEntities(w, model, cfg, layers);
     w('0\nEOF\n');
@@ -806,10 +756,6 @@ const DXFExporter = (() => {
     return out;
   }
 
-  /**
-   * Genera el DXF y dispara la descarga / compartir.
-   * @returns {Promise<{ok:boolean, fname?:string, reason?:string}>}
-   */
   async function exportModel(model, options = {}) {
     const cfg = { ...DEFAULTS, ...options };
     const toastFn = cfg.toastFn || ((m, k) => {});
@@ -831,14 +777,12 @@ const DXFExporter = (() => {
     const fname = `PLANO_${new Date().toISOString().slice(0,10)}_${Date.now() % 10000}.dxf`;
     const blob = new Blob([dxf], { type: 'application/dxf' });
 
-    // Callback personalizado
     if (typeof cfg.onDownload === 'function') {
       await cfg.onDownload(blob, fname);
       toastFn('DXF exportado', 'ok');
       return { ok: true, fname };
     }
 
-    // Web Share (móvil)
     try {
       const file = new File([blob], fname, { type: 'application/dxf' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -854,7 +798,6 @@ const DXFExporter = (() => {
       if (e.name === 'AbortError') return { ok: false, reason: 'aborted' };
     }
 
-    // Descarga fallback
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = fname;
@@ -865,20 +808,16 @@ const DXFExporter = (() => {
     return { ok: true, fname };
   }
 
-  /**
-   * Configura las capas del exportador.
-   * @param {Object} layers { MUROS:{name,aci}, ... }
-   */
-  function setLayers(layers) {
-    // Guardar en el objeto DEFAULTS para persistir entre llamadas
-    DEFAULTS.layers = { ...layers };
-  }
+  function setLayers(layers) { DEFAULTS.layers = { ...layers }; }
+  function setFonts(fonts)   { DEFAULTS.fonts  = { ...fonts  }; }
 
   return {
     build,
     export: exportModel,
     setLayers,
+    setFonts,
     DEFAULT_LAYERS,
+    DEFAULT_FONTS,
     DEFAULTS,
   };
 })();
@@ -894,6 +833,7 @@ const S = {
   angle: 90,
   compass: 0,
   snapMode: 'ortho',
+  dimMode: 'auto',   // 'auto' | 'on' | 'off'
   view: { x: 0, y: 0, s: 50 },
   lastDist: 0,
   picking: false,
@@ -919,6 +859,8 @@ const S = {
   draggingText: null,
   textDragMoved: false,
   textDragStart: null,
+  // Umbrales de auto-cotizado
+  dimMinScreenLen: 55,     // px — ocultar si el segmento en pantalla es más corto
 };
 const INIT_SCALE = 50;
 const DIAL_R = 56;
@@ -937,7 +879,8 @@ const cv = $('cv'), ctx = cv.getContext('2d');
 
 const ui = {
   dot: $('dot'), stat: $('statTxt'),
-  chipOrtho: $('chipOrtho'), chipSnap: $('chipSnap'), chipText: $('chipText'),
+  chipOrtho: $('chipOrtho'), chipSnap: $('chipSnap'),
+  chipDims: $('chipDims'), chipText: $('chipText'),
   rose: $('rose'), needle: $('needle'), scalebar: $('scalebar'),
   tCoord: $('tCoord'), tDist: $('tDist'), tAng: $('tAng'), tSeg: $('tSeg'), tTxt: $('tTxt'), tZoom: $('tZoom'),
   bUndo: $('bUndo'), bRedo: $('bRedo'), bAngle: $('bAngle'),
@@ -953,6 +896,7 @@ const ui = {
   optCompass: $('optCompass'), compState: $('compState'),
   optSnap: $('optSnap'), snapSub: $('snapSub'), snapVal: $('snapVal'),
   optGrid: $('optGrid'), gridVal: $('gridVal'),
+  optDims: $('optDims'), dimsSub: $('dimsSub'), dimsVal: $('dimsVal'),
   optMagnet: $('optMagnet'), magSub: $('magSub'), magVal: $('magVal'),
   optKpPin: $('optKpPin'), kpSub: $('kpSub'), kpState: $('kpState'),
   optDefaultTextSize: $('optDefaultTextSize'), defTextSize: $('defTextSize'),
@@ -1205,9 +1149,7 @@ function cancelTextModalOnly() {
 
 function openTextModal({ edit = false, idx = -1 } = {}) {
   ui.tmTitle.textContent = edit ? 'Editar texto' : 'Nuevo texto';
-  ui.tmDesc.textContent = edit
-    ? 'Modifica contenido o tamaño'
-    : 'Contenido y tamaño del texto';
+  ui.tmDesc.textContent = edit ? 'Modifica contenido o tamaño' : 'Contenido y tamaño del texto';
 
   if (edit && idx >= 0 && idx < S.texts.length) {
     const t = S.texts[idx];
@@ -1469,6 +1411,9 @@ function paint() {
   const r = S.view.s;
   const lw = Math.max(1.5, Math.min(3, r / 40));
 
+  /* --- Rectángulos ya ocupados por cotas (para auto-overlap) --- */
+  const drawnDimRects = [];
+
   for (let i = 0; i < S.lines.length; i++) {
     const l = S.lines[i];
     const p1 = w2s(l.x1, l.y1), p2 = w2s(l.x2, l.y2);
@@ -1491,11 +1436,44 @@ function paint() {
     ctx.beginPath(); ctx.arc(p1.x, p1.y, VERTEX_R + (isSel ? 1 : 0), 0, 7); ctx.fill();
     ctx.beginPath(); ctx.arc(p2.x, p2.y, VERTEX_R + (isSel ? 1 : 0), 0, 7); ctx.fill();
 
-    if (!isSel && r > 12) {
-      const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-      drawLabel(`${l.dist.toFixed(2)}m`, mx, my - 14, isActive);
+    /* ---- COTAS CON AUTO-HIDE ---- */
+    if (!isSel && r > 12 && S.dimMode !== 'off') {
+      const screenLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      let show = true;
+
+      // Filtro de tamaño mínimo
+      if (S.dimMode === 'auto' && screenLen < S.dimMinScreenLen) {
+        show = false;
+      }
+
+      if (show) {
+        const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+        const label = `${l.dist.toFixed(2)}m`;
+        ctx.font = '600 11px "SF Mono","JetBrains Mono",Consolas,monospace';
+        const tw = ctx.measureText(label).width + 12;
+        const th = 18;
+        const lx = mx - tw / 2;
+        const ly = my - 14 - th / 2;
+
+        // Filtro de overlap (solo en modo auto)
+        if (S.dimMode === 'auto') {
+          for (const rc of drawnDimRects) {
+            if (lx < rc.x + rc.w && lx + tw > rc.x &&
+                ly < rc.y + rc.h && ly + th > rc.y) {
+              show = false;
+              break;
+            }
+          }
+        }
+
+        if (show) {
+          drawnDimRects.push({ x: lx, y: ly, w: tw, h: th });
+          drawLabel(label, mx, my - 14, isActive);
+        }
+      }
     }
 
+    // Badge de edición siempre visible
     if (isSel && !isMoving) {
       const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
       drawEditDistanceBadge(mx, my, l.dist);
@@ -2623,7 +2601,7 @@ async function enableCompass() {
 }
 
 /* ============================================================
-   EXPORTACIÓN — sólo puente al módulo DXFExporter
+   EXPORTACIÓN — puente al módulo
    ============================================================ */
 async function exportDXF() {
   await DXFExporter.export(
@@ -2724,6 +2702,14 @@ function updateUI() {
   ui.snapSub.textContent = snapNames[S.snapMode];
   ui.snapVal.textContent = snapShort[S.snapMode];
 
+  const dimNames = { auto: 'Automático', on: 'Siempre visible', off: 'Ocultas' };
+  const dimShort = { auto: 'AUTO', on: 'ON', off: 'OFF' };
+  ui.chipDims.textContent = `📐 COTAS: ${dimShort[S.dimMode]}`;
+  ui.chipDims.classList.toggle('on', S.dimMode === 'on' || S.dimMode === 'auto');
+  ui.chipDims.classList.toggle('warn', S.dimMode === 'off');
+  ui.dimsSub.textContent = dimNames[S.dimMode];
+  ui.dimsVal.textContent = dimShort[S.dimMode];
+
   ui.gridVal.textContent = S.grid ? 'ON' : 'OFF';
   ui.gridVal.style.color = S.grid ? 'var(--ac)' : '';
   ui.dxfSub.textContent = `${S.lines.length} segmentos · ${S.texts.length} textos`;
@@ -2774,6 +2760,16 @@ ui.chipSnap.onclick = () => {
   updateUI(); render();
   const names = { free: 'Libre', ortho: 'Ortogonal', '45': 'Snap 45°', '15': 'Snap 15°' };
   toast(names[S.snapMode]);
+};
+
+/* --- Chip COTAS: cicla AUTO → ON → OFF → AUTO --- */
+ui.chipDims.onclick = () => {
+  const order = ['auto', 'on', 'off'];
+  const i = (order.indexOf(S.dimMode) + 1) % order.length;
+  S.dimMode = order[i];
+  updateUI(); render();
+  const names = { auto: '📐 Cotas auto', on: '📐 Cotas siempre', off: '📐 Cotas ocultas' };
+  toast(names[S.dimMode]);
 };
 
 ui.bUndo.onclick = undo;
@@ -2827,6 +2823,13 @@ ui.optGrid.onclick = () => {
   S.grid = !S.grid;
   updateUI(); render();
   toast(`Cuadrícula ${S.grid ? 'ON' : 'OFF'}`);
+};
+
+ui.optDims.onclick = () => {
+  const order = ['auto', 'on', 'off'];
+  const i = (order.indexOf(S.dimMode) + 1) % order.length;
+  S.dimMode = order[i];
+  updateUI(); render();
 };
 
 ui.optMagnet.onclick = () => {
