@@ -14,6 +14,7 @@
   --tx:#ececf0; --tx2:#8a8a94; --tx3:#56565f;
   --ac:#22d3ee; --ac-d:rgba(34,211,238,.14);
   --ok:#22c55e; --wn:#f59e0b; --dg:#ef4444;
+  --pk:#f472b6; --pk-d:rgba(244,114,182,.14);
   --r1:6px; --r2:10px; --r3:14px;
   --sh:0 8px 28px rgba(0,0,0,.55);
   --mono:"SF Mono","JetBrains Mono",Consolas,monospace;
@@ -60,6 +61,7 @@ canvas{display:block;width:100%;height:100%}
 .chip:active{transform:scale(.95)}
 .chip.on{background:var(--ac-d);border-color:rgba(34,211,238,.55);color:var(--ac)}
 .chip.warn{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.55);color:var(--wn)}
+.chip.text-mode{background:var(--pk-d);border-color:rgba(244,114,182,.55);color:var(--pk)}
 
 .rose{
   position:absolute;top:10px;right:10px;width:58px;height:58px;border-radius:50%;
@@ -92,43 +94,40 @@ canvas{display:block;width:100%;height:100%}
 .tel-v{color:var(--ac);font-weight:700}
 .tel-v.warn{color:var(--wn)}
 .tel-v.ok{color:var(--ok)}
+.tel-v.pk{color:var(--pk)}
 
 .dock{
   flex-shrink:0;height:calc(66px + env(safe-area-inset-bottom));
-  padding:0 8px env(safe-area-inset-bottom);
+  padding:0 5px env(safe-area-inset-bottom);
   background:var(--s1);border-top:1px solid var(--bd);
-  display:flex;align-items:center;gap:6px;z-index:20;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  align-items:center;gap:4px;z-index:20;
 }
 .dbtn{
-  flex:1;height:50px;background:var(--s2);border:1px solid var(--bd);
+  height:50px;background:var(--s2);border:1px solid var(--bd);
   border-radius:var(--r2);color:var(--tx);
-  font:600 9.5px -apple-system,system-ui,sans-serif;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  cursor:pointer;transition:.15s;letter-spacing:.03em;text-transform:uppercase;
-  position:relative;overflow:hidden;
+  font:600 8px -apple-system,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;transition:.15s;letter-spacing:.01em;text-transform:uppercase;
+  position:relative;overflow:hidden;padding:0 1px;
+  min-width:0;
 }
 .dbtn:active:not(:disabled){background:var(--s3);transform:scale(.96)}
 .dbtn:disabled{opacity:.32;cursor:not-allowed}
-.dbtn .ic{font-size:16px;line-height:1}
+.dbtn .ic{font-size:14px;line-height:1}
 .dbtn.primary{color:var(--ac);border-color:rgba(34,211,238,.35)}
 .dbtn.primary:active{background:var(--ac-d)}
+.dbtn.warning{color:#fcd99a;border-color:rgba(245,158,11,.45)}
+.dbtn.warning:active{background:rgba(245,158,11,.12)}
+.dbtn.pink{color:var(--pk);border-color:rgba(244,114,182,.35)}
+.dbtn.pink:active{background:var(--pk-d)}
 .dbtn.danger{color:#ff6b6b;border-color:rgba(239,68,68,.4)}
 .dbtn.danger:active{background:rgba(239,68,68,.12)}
 .dbtn.armed{background:var(--ac);color:#00232b;border-color:var(--ac)}
 .dbtn.armed .ic{color:#00232b}
-
-.dbtn.confirming{
-  background:rgba(239,68,68,.28) !important;
-  border-color:#ef4444 !important;
-  color:#fff !important;
-  animation:confirmPulse .9s ease-out;
-}
-.dbtn.confirming .ic{color:#fff !important}
-@keyframes confirmPulse{
-  0%{box-shadow:0 0 0 0 rgba(239,68,68,.8)}
-  70%{box-shadow:0 0 0 12px rgba(239,68,68,0)}
-  100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}
-}
+.dbtn.pink-armed{background:var(--pk);color:#3d0f26;border-color:var(--pk)}
+.dbtn.pink-armed .ic{color:#3d0f26}
 
 .keypad{
   position:fixed;left:0;right:0;
@@ -188,28 +187,15 @@ canvas{display:block;width:100%;height:100%}
 .kp-icon:active{background:var(--s3);transform:scale(.94)}
 .kp-icon.on{color:var(--ac);background:var(--ac-d);border-color:rgba(34,211,238,.4)}
 
-.kp-grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:5px;
-}
+.kp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
 .kp-key{
-  height:38px;
-  background:var(--s2);
-  border:1px solid var(--bd);
-  color:var(--tx);
-  border-radius:var(--r1);
-  font:700 16px var(--mono);
-  cursor:pointer;
-  transition:.1s;
-  display:grid;place-items:center;
-  touch-action:manipulation;
-  letter-spacing:.02em;
+  height:38px;background:var(--s2);border:1px solid var(--bd);
+  color:var(--tx);border-radius:var(--r1);
+  font:700 16px var(--mono);cursor:pointer;transition:.1s;
+  display:grid;place-items:center;touch-action:manipulation;letter-spacing:.02em;
 }
 .kp-key:active{background:var(--s3);transform:scale(.95)}
-.kp-key.kp-fn{
-  color:var(--tx2);font-size:14px;background:#1a1a1f;
-}
+.kp-key.kp-fn{color:var(--tx2);font-size:14px;background:#1a1a1f}
 .kp-key.kp-fn:active{background:#25252d}
 .kp-key.kp-ok{
   background:var(--ac);color:#00232b;border-color:var(--ac);
@@ -218,9 +204,7 @@ canvas{display:block;width:100%;height:100%}
   grid-column:span 2;
 }
 .kp-key.kp-ok:active{background:#0ea5b7;transform:scale(.96)}
-.keypad.edit .kp-key.kp-ok{
-  background:#22c55e;border-color:#22c55e;color:#00220d;
-}
+.keypad.edit .kp-key.kp-ok{background:#22c55e;border-color:#22c55e;color:#00220d}
 .keypad.edit .kp-key.kp-ok:active{background:#16a34a}
 
 body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
@@ -233,7 +217,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 
 .modal{
   position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);
-  width:min(360px,88vw);background:var(--s2);border:1px solid var(--bd2);
+  width:min(380px,90vw);background:var(--s2);border:1px solid var(--bd2);
   border-radius:var(--r3);padding:20px;box-shadow:var(--sh);
   opacity:0;pointer-events:none;transition:.22s cubic-bezier(.2,.8,.3,1);z-index:501;
 }
@@ -242,10 +226,16 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .modal p{font-size:12px;color:var(--tx2);margin-bottom:14px;line-height:1.45}
 .modal input{
   width:100%;background:var(--s1);border:1px solid var(--bd2);color:var(--tx);
-  border-radius:var(--r1);padding:11px 13px;font:600 18px var(--mono);
+  border-radius:var(--r1);padding:11px 13px;font:600 16px var(--mono);
   outline:none;text-align:center;letter-spacing:.04em;
 }
+.modal input.text-input{text-align:left;font:600 15px -apple-system,system-ui,sans-serif;letter-spacing:0}
 .modal input:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-d)}
+.modal .field-label{
+  display:block;font-size:10px;color:var(--tx3);font-weight:700;
+  text-transform:uppercase;letter-spacing:.1em;margin:12px 0 6px;
+}
+.modal .field-label:first-of-type{margin-top:8px}
 .modal .row{display:flex;gap:8px;margin-top:16px}
 .modal button{
   flex:1;height:42px;border-radius:var(--r1);border:none;font-size:13px;font-weight:700;
@@ -253,6 +243,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 }
 .modal .b-cancel{background:var(--s3);color:var(--tx)}
 .modal .b-ok{background:var(--ac);color:#00232b}
+.modal .b-delete{background:rgba(239,68,68,.15);color:#ff8a8a;border:1px solid rgba(239,68,68,.4)}
 .modal button:active{transform:scale(.97)}
 
 .sheet{
@@ -300,6 +291,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .toast.ok{border-color:rgba(34,197,94,.55);color:#a7f3c9}
 .toast.warn{border-color:rgba(245,158,11,.55);color:#fcd99a}
 .toast.err{border-color:rgba(239,68,68,.55);color:#fca5a5}
+.toast.pk{border-color:rgba(244,114,182,.55);color:#fbcfe8}
 @keyframes tIn{from{opacity:0;transform:translateY(10px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes tOut{to{opacity:0;transform:translateY(-8px) scale(.9)}}
 </style>
@@ -330,6 +322,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="chips">
     <button class="chip on" id="chipOrtho">◱ ORTO</button>
     <button class="chip" id="chipSnap">∠ SNAP 90°</button>
+    <button class="chip" id="chipText" style="display:none">✎ TEXTO · TOCA EL LIENZO</button>
   </div>
 
   <div class="rose hidden" id="rose">
@@ -355,6 +348,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="tel-item"><span class="tel-k">DIST</span><span class="tel-v warn" id="tDist">0.000</span><span class="tel-k">m</span></div>
   <div class="tel-item"><span class="tel-k">RUM</span><span class="tel-v" id="tAng">090°</span></div>
   <div class="tel-item"><span class="tel-k">SEG</span><span class="tel-v ok" id="tSeg">0</span></div>
+  <div class="tel-item"><span class="tel-k">TXT</span><span class="tel-v pk" id="tTxt">0</span></div>
   <div class="tel-item"><span class="tel-k">ZOOM</span><span class="tel-v" id="tZoom">50</span><span class="tel-k">px/m</span></div>
 </div>
 
@@ -392,12 +386,14 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 </div>
 
 <div class="dock">
-  <button class="dbtn" id="bUndo" disabled><span class="ic">↶</span>DESHACER</button>
-  <button class="dbtn" id="bRedo" disabled><span class="ic">↷</span>REHACER</button>
-  <button class="dbtn primary" id="bAngle"><span class="ic">∠</span>ÁNGULO</button>
+  <button class="dbtn" id="bUndo" disabled><span class="ic">↶</span>DESH</button>
+  <button class="dbtn" id="bRedo" disabled><span class="ic">↷</span>REHAC</button>
+  <button class="dbtn primary" id="bAngle"><span class="ic">∠</span>ÁNG</button>
   <button class="dbtn primary" id="bDist"><span class="ic">📏</span>DIST</button>
+  <button class="dbtn pink" id="bText"><span class="ic">✎</span>TEXTO</button>
   <button class="dbtn" id="bBase"><span class="ic">📍</span>BASE</button>
-  <button class="dbtn danger" id="bClose"><span class="ic">⏹</span><span id="bCloseLbl">CERRAR</span></button>
+  <button class="dbtn warning" id="bTerminar"><span class="ic">⏏</span>TERM</button>
+  <button class="dbtn danger" id="bClose"><span class="ic">⏹</span>CERR</button>
 </div>
 
 <div class="overlay" id="overlay"></div>
@@ -409,6 +405,20 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="row">
     <button class="b-cancel" id="mCancel">Cancelar</button>
     <button class="b-ok" id="mOk">Aplicar</button>
+  </div>
+</div>
+
+<div class="modal" id="textModal">
+  <h3 id="tmTitle">Nuevo texto</h3>
+  <p id="tmDesc">Contenido y tamaño del texto</p>
+  <label class="field-label">Contenido</label>
+  <input type="text" class="text-input" id="tmContent" placeholder="Escribe aquí…" autocomplete="off" spellcheck="false" maxlength="80">
+  <label class="field-label">Tamaño (m)</label>
+  <input type="text" inputmode="decimal" id="tmSize" value="0.25" autocomplete="off" spellcheck="false">
+  <div class="row">
+    <button class="b-cancel" id="tmCancel">Cancelar</button>
+    <button class="b-delete" id="tmDelete" style="display:none">Borrar</button>
+    <button class="b-ok" id="tmOk">Aplicar</button>
   </div>
 </div>
 
@@ -452,6 +462,10 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
       <div class="opt-l"><div class="opt-ic">⌨</div><div><div>Teclado numérico</div><div class="opt-sub" id="kpSub">Oculto</div></div></div>
       <div class="opt-val" id="kpState">OFF</div>
     </div>
+    <div class="opt" id="optDefaultTextSize">
+      <div class="opt-l"><div class="opt-ic">✎</div><div><div>Tamaño texto por defecto</div><div class="opt-sub">Altura en metros</div></div></div>
+      <div class="opt-val" id="defTextSize">0.25</div>
+    </div>
 
     <h4>Vista</h4>
     <div class="opt" id="optExtents">
@@ -465,7 +479,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 
     <h4>Exportar</h4>
     <div class="opt" id="optDxf">
-      <div class="opt-l"><div class="opt-ic">⬇</div><div><div>Guardar DXF</div><div class="opt-sub" id="dxfSub">0 segmentos</div></div></div>
+      <div class="opt-l"><div class="opt-ic">⬇</div><div><div>Guardar DXF</div><div class="opt-sub" id="dxfSub">0 segmentos · 0 textos</div></div></div>
       <div class="opt-r">›</div>
     </div>
 
@@ -490,8 +504,21 @@ const CHAR_TX_RX   = "02A6C0D1-0451-4000-B000-FB3210111989";
 const ZOOM_MIN = 1e-5;
 const ZOOM_MAX = 1e7;
 
+const POINTER_HIT_R = 44;
+
+/* Colores de capas del DXF (ACI — AutoCAD Color Index)
+   1=rojo 2=amarillo 3=verde 4=cyan 5=azul 6=magenta 7=blanco/negro */
+const LAYERS = {
+  MUROS:    { name: 'MUROS',    aci: 4 },  // cyan
+  COTAS:    { name: 'COTAS',    aci: 2 },  // amarillo
+  TEXTOS:   { name: 'TEXTOS',   aci: 6 },  // magenta
+  VERTICES: { name: 'VERTICES', aci: 7 },  // blanco
+  EJES:     { name: 'EJES',     aci: 1 },  // rojo
+};
+
 const S = {
   lines: [],
+  texts: [],           // [{x, y, content, size, angle}]
   redoStack: [],
   base: { x: 0, y: 0 },
   angle: 90,
@@ -501,6 +528,7 @@ const S = {
   lastDist: 0,
   picking: false,
   draggingDial: false,
+  draggingPointer: false,
   grid: true,
   compassOn: false,
   ble: { dev: null, srv: null, chr: null, on: false, busy: false },
@@ -510,8 +538,13 @@ const S = {
   newPolylineOnPick: false,
   lineTapPx: 22,
   selectedLineIdx: -1,
-  editMode: 'idle',        // 'idle' | 'segment-selected' | 'choose-point' | 'moving'
-  movingEnd: null,         // 'start' | 'end' | null
+  editMode: 'idle',
+  movingEnd: null,
+  // Texto
+  textMode: 'idle',        // 'idle' | 'placing'
+  pendingTextPos: null,    // {x,y} en mundo
+  editingTextIdx: -1,
+  defaultTextSize: 0.25,   // m
 };
 const INIT_SCALE = 50;
 const DIAL_R = 56;
@@ -520,7 +553,7 @@ const VERTEX_R = 3;
 const kp = {
   visible: false,
   pinned: false,
-  mode: 'dist',    // 'dist' | 'angle' | 'edit-dist'
+  mode: 'dist',
   value: '',
   editIdx: -1,
 };
@@ -530,14 +563,17 @@ const cv = $('cv'), ctx = cv.getContext('2d');
 
 const ui = {
   dot: $('dot'), stat: $('statTxt'),
-  chipOrtho: $('chipOrtho'), chipSnap: $('chipSnap'),
+  chipOrtho: $('chipOrtho'), chipSnap: $('chipSnap'), chipText: $('chipText'),
   rose: $('rose'), needle: $('needle'), scalebar: $('scalebar'),
-  tCoord: $('tCoord'), tDist: $('tDist'), tAng: $('tAng'), tSeg: $('tSeg'), tZoom: $('tZoom'),
+  tCoord: $('tCoord'), tDist: $('tDist'), tAng: $('tAng'), tSeg: $('tSeg'), tTxt: $('tTxt'), tZoom: $('tZoom'),
   bUndo: $('bUndo'), bRedo: $('bRedo'), bAngle: $('bAngle'),
-  bDist: $('bDist'), bBase: $('bBase'), bClose: $('bClose'),
-  bCloseLbl: $('bCloseLbl'),
+  bDist: $('bDist'), bText: $('bText'), bBase: $('bBase'), bClose: $('bClose'),
+  bTerminar: $('bTerminar'),
   overlay: $('overlay'), modal: $('modal'), mTitle: $('mTitle'), mDesc: $('mDesc'),
   mInput: $('mInput'), mOk: $('mOk'), mCancel: $('mCancel'),
+  textModal: $('textModal'), tmTitle: $('tmTitle'), tmDesc: $('tmDesc'),
+  tmContent: $('tmContent'), tmSize: $('tmSize'),
+  tmCancel: $('tmCancel'), tmDelete: $('tmDelete'), tmOk: $('tmOk'),
   sheet: $('sheet'), toasts: $('toasts'),
   optBLE: $('optBLE'), bleSub: $('bleSub'), bleState: $('bleState'),
   optCompass: $('optCompass'), compState: $('compState'),
@@ -545,6 +581,7 @@ const ui = {
   optGrid: $('optGrid'), gridVal: $('gridVal'),
   optMagnet: $('optMagnet'), magSub: $('magSub'), magVal: $('magVal'),
   optKpPin: $('optKpPin'), kpSub: $('kpSub'), kpState: $('kpState'),
+  optDefaultTextSize: $('optDefaultTextSize'), defTextSize: $('defTextSize'),
   optExtents: $('optExtents'), optReset: $('optReset'),
   optDxf: $('optDxf'), dxfSub: $('dxfSub'),
   optClear: $('optClear'),
@@ -589,7 +626,7 @@ function snapToGrid(wx, wy) {
 }
 
 /* ============================================================
-   HIT-TEST DE SEGMENTOS
+   HIT-TEST DE SEGMENTOS Y TEXTOS
    ============================================================ */
 function pointToSegmentDist(px, py, x1, y1, x2, y2) {
   const vx = x2 - x1, vy = y2 - y1;
@@ -613,16 +650,32 @@ function findSegmentAt(sx, sy, maxPx = S.lineTapPx) {
   return best;
 }
 
+/* Bounding box en pantalla del texto */
+function getTextBounds(t) {
+  const p = w2s(t.x, t.y);
+  const fontPx = Math.max(8, t.size * S.view.s);
+  ctx.font = `600 ${fontPx}px -apple-system,system-ui,sans-serif`;
+  const w = ctx.measureText(t.content).width;
+  const h = fontPx * 1.2;
+  return { x: p.x - 4, y: p.y - fontPx + 2, w: w + 8, h: h + 4, fontPx, px: p.x, py: p.y };
+}
+
+function findTextAt(sx, sy, padPx = 6) {
+  let best = -1, bestD = Infinity;
+  for (let i = 0; i < S.texts.length; i++) {
+    const b = getTextBounds(S.texts[i]);
+    if (sx >= b.x - padPx && sx <= b.x + b.w + padPx &&
+        sy >= b.y - padPx && sy <= b.y + b.h + padPx) {
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      const d = Math.hypot(sx - cx, sy - cy);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+  }
+  return best;
+}
+
 /* ============================================================
    EDICIÓN DE SEGMENTOS
-   ------------------------------------------------------------
-   El punto móvil se desplaza sobre la MISMA dirección del vector
-   del segmento. Todos los demás puntos (no compartidos) mantienen
-   su posición exacta — solo se actualiza el punto compartido con
-   el segmento adyacente para preservar la continuidad de la
-   polilínea.
-   Acepta valores negativos: el punto cruza el ancla y el segmento
-   invierte su dirección.
    ============================================================ */
 function recomputeLineMetrics(idx) {
   const l = S.lines[idx];
@@ -638,60 +691,36 @@ function editSegmentDistance(idx, newSignedDist, movingEnd) {
     toast('Valor inválido', 'err');
     return;
   }
-
   const l = S.lines[idx];
   const rad = l.angle * Math.PI / 180;
   const cosA = Math.cos(rad), sinA = Math.sin(rad);
 
   if (movingEnd === 'start') {
-    // El ancla es el extremo final (x2, y2).
-    // El punto inicial (x1, y1) se mueve a lo largo de la dirección del vector:
-    // newStart = end - newSignedDist * dir
     const newX1 = l.x2 - newSignedDist * cosA;
     const newY1 = l.y2 - newSignedDist * sinA;
-
-    l.x1 = newX1;
-    l.y1 = newY1;
-
-    // Solo actualizamos el punto COMPARTIDO con el segmento ANTERIOR
-    // (su extremo final). Todos los demás puntos quedan intactos.
+    l.x1 = newX1; l.y1 = newY1;
     if (idx > 0) {
       S.lines[idx - 1].x2 = newX1;
       S.lines[idx - 1].y2 = newY1;
       recomputeLineMetrics(idx - 1);
     }
   } else {
-    // El ancla es el extremo inicial (x1, y1).
-    // El punto final (x2, y2) se mueve a lo largo de la dirección del vector:
-    // newEnd = start + newSignedDist * dir
     const newX2 = l.x1 + newSignedDist * cosA;
     const newY2 = l.y1 + newSignedDist * sinA;
-
-    l.x2 = newX2;
-    l.y2 = newY2;
-
-    // Solo actualizamos el punto COMPARTIDO con el segmento SIGUIENTE
-    // (su extremo inicial). Todos los demás puntos quedan intactos.
+    l.x2 = newX2; l.y2 = newY2;
     if (idx < S.lines.length - 1) {
       S.lines[idx + 1].x1 = newX2;
       S.lines[idx + 1].y1 = newY2;
       recomputeLineMetrics(idx + 1);
     }
-
-    // Si es el último segmento, actualizar base y última distancia
     if (idx === S.lines.length - 1) {
       S.base = { x: newX2, y: newY2 };
       S.lastDist = Math.abs(newSignedDist);
     }
   }
-
-  // Recalcular métricas del segmento editado (dist abs, ángulo real)
   recomputeLineMetrics(idx);
-
   S.redoStack.length = 0;
-  updateUI();
-  render();
-
+  updateUI(); render();
   const sign = newSignedDist < 0 ? '−' : '';
   toast(`Seg ${idx + 1} → ${sign}${Math.abs(newSignedDist).toFixed(3)}m`, 'ok');
 }
@@ -700,39 +729,28 @@ function deleteSelectedSegment() {
   const idx = S.selectedLineIdx;
   if (idx < 0 || idx >= S.lines.length) return;
 
-  const removed = S.lines[idx];
-  const removedStart = { x: removed.x1, y: removed.y1 };
-  const removedEnd = { x: removed.x2, y: removed.y2 };
-
+  const wasLast = (idx === S.lines.length - 1);
   S.lines.splice(idx, 1);
-
-  // Reconectar: desplazar los segmentos posteriores para que empiecen
-  // donde empezaba el segmento eliminado
-  const dx = removedStart.x - removedEnd.x;
-  const dy = removedStart.y - removedEnd.y;
-  for (let i = idx; i < S.lines.length; i++) {
-    S.lines[i].x1 += dx; S.lines[i].y1 += dy;
-    S.lines[i].x2 += dx; S.lines[i].y2 += dy;
-  }
 
   if (S.lines.length === 0) {
     S.base = { x: 0, y: 0 };
     S.lastDist = 0;
     S.polylineStart = 0;
-  } else {
+  } else if (wasLast) {
     const last = S.lines[S.lines.length - 1];
     S.base = { x: last.x2, y: last.y2 };
-    if (S.polylineStart >= S.lines.length) S.polylineStart = 0;
-    else if (idx < S.polylineStart) S.polylineStart = Math.max(0, S.polylineStart - 1);
+    S.lastDist = last.dist;
   }
+
+  if (S.polylineStart > S.lines.length) S.polylineStart = S.lines.length;
+  else if (idx < S.polylineStart) S.polylineStart = Math.max(0, S.polylineStart - 1);
 
   S.redoStack.length = 0;
   S.selectedLineIdx = -1;
   S.editMode = 'idle';
   S.movingEnd = null;
 
-  updateUI();
-  render();
+  updateUI(); render();
   toast('Segmento eliminado', 'warn');
 }
 
@@ -771,6 +789,127 @@ function getEditButtonRects() {
   });
   return rects;
 }
+
+/* ============================================================
+   TEXTO — flujo de creación / edición
+   ============================================================ */
+function startTextPlacement() {
+  // Salir de otros modos
+  deselectSegment();
+  if (kp.visible) kpHide();
+  S.textMode = 'placing';
+  S.pendingTextPos = null;
+  ui.chipText.style.display = 'flex';
+  ui.bText.classList.add('pink-armed');
+  toast('Toca el lienzo para ubicar el texto', 'pk');
+}
+
+function cancelTextPlacement() {
+  S.textMode = 'idle';
+  S.pendingTextPos = null;
+  ui.chipText.style.display = 'none';
+  ui.bText.classList.remove('pink-armed');
+}
+
+function openTextModal({ edit = false, idx = -1 } = {}) {
+  ui.tmTitle.textContent = edit ? 'Editar texto' : 'Nuevo texto';
+  ui.tmDesc.textContent = edit
+    ? 'Modifica contenido o tamaño'
+    : 'Contenido y tamaño del texto';
+
+  if (edit && idx >= 0 && idx < S.texts.length) {
+    const t = S.texts[idx];
+    ui.tmContent.value = t.content;
+    ui.tmSize.value = String(t.size);
+    ui.tmDelete.style.display = 'flex';
+    S.editingTextIdx = idx;
+  } else {
+    ui.tmContent.value = '';
+    ui.tmSize.value = String(S.defaultTextSize);
+    ui.tmDelete.style.display = 'none';
+    S.editingTextIdx = -1;
+  }
+
+  ui.overlay.classList.add('show');
+  ui.textModal.classList.add('show');
+  setTimeout(() => { ui.tmContent.focus(); ui.tmContent.select(); }, 140);
+}
+
+function closeTextModal() {
+  ui.overlay.classList.remove('show');
+  ui.textModal.classList.remove('show');
+  S.editingTextIdx = -1;
+}
+
+ui.tmCancel.onclick = () => {
+  closeTextModal();
+  cancelTextPlacement();
+};
+
+ui.tmDelete.onclick = () => {
+  if (S.editingTextIdx >= 0 && S.editingTextIdx < S.texts.length) {
+    S.texts.splice(S.editingTextIdx, 1);
+    toast('Texto eliminado', 'warn');
+  }
+  closeTextModal();
+  cancelTextPlacement();
+  updateUI();
+  render();
+};
+
+ui.tmOk.onclick = () => {
+  const content = (ui.tmContent.value || '').trim();
+  const size = parseFloat((ui.tmSize.value || '').replace(',', '.'));
+
+  if (!content) { toast('Escribe algún texto', 'err'); return; }
+  if (!isFinite(size) || size <= 0) { toast('Tamaño inválido', 'err'); return; }
+  const clampedSize = Math.max(0.01, Math.min(50, size));
+
+  if (S.editingTextIdx >= 0) {
+    // Editar
+    S.texts[S.editingTextIdx].content = content;
+    S.texts[S.editingTextIdx].size = clampedSize;
+    toast(`Texto actualizado · ${clampedSize.toFixed(2)}m`, 'pk');
+  } else if (S.pendingTextPos) {
+    // Crear
+    S.texts.push({
+      x: S.pendingTextPos.x,
+      y: S.pendingTextPos.y,
+      content,
+      size: clampedSize,
+      angle: 0,
+    });
+    S.defaultTextSize = clampedSize;
+    toast(`Texto añadido · ${clampedSize.toFixed(2)}m`, 'pk');
+  }
+
+  closeTextModal();
+  cancelTextPlacement();
+  updateUI();
+  render();
+};
+
+ui.tmContent.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); ui.tmSize.focus(); ui.tmSize.select(); }
+});
+ui.tmSize.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); ui.tmOk.click(); }
+  if (e.key === 'Escape') { e.preventDefault(); ui.tmCancel.click(); }
+});
+
+ui.bText.onclick = () => {
+  if (S.textMode === 'placing') {
+    cancelTextPlacement();
+    toast('Colocación cancelada');
+    return;
+  }
+  startTextPlacement();
+};
+
+ui.chipText.onclick = () => {
+  cancelTextPlacement();
+  toast('Colocación cancelada');
+};
 
 /* ============================================================
    TECLADO NUMÉRICO
@@ -878,12 +1017,7 @@ function kpConfirm() {
   }
 
   if (kp.mode === 'edit-dist') {
-    // ✅ Se aceptan valores negativos — el punto se desplaza en la
-    //    misma dirección del vector y cruza el ancla (segmento invertido).
-    if (Math.abs(val) < 1e-9) {
-      toast('Valor no puede ser 0', 'err');
-      return;
-    }
+    if (Math.abs(val) < 1e-9) { toast('Valor no puede ser 0', 'err'); return; }
     const idx = kp.editIdx;
     const me = S.movingEnd;
     editSegmentDistance(idx, val, me);
@@ -895,7 +1029,6 @@ function kpConfirm() {
     return;
   }
 
-  // modo 'dist' normal — crear nuevo segmento
   if (Math.abs(val) < 1e-9) { toast('Valor no puede ser 0', 'err'); return; }
   commitSegment(val);
   kpClearInput();
@@ -913,7 +1046,7 @@ ui.kpClose.onclick = kpClose;
 
 document.addEventListener('keydown', e => {
   if (!kp.visible) return;
-  if (e.target === ui.mInput) return;
+  if (e.target === ui.mInput || e.target === ui.tmContent || e.target === ui.tmSize) return;
   if (e.target.tagName === 'INPUT' && e.target !== ui.kpInput) return;
 
   if (/^[0-9]$/.test(e.key)) { kpPress(e.key); e.preventDefault(); }
@@ -947,22 +1080,26 @@ function paint() {
     const p1 = w2s(l.x1, l.y1), p2 = w2s(l.x2, l.y2);
     const isSel = (i === S.selectedLineIdx);
     const isMoving = isSel && S.editMode === 'moving';
+    const isActive = i >= S.polylineStart;
 
-    ctx.strokeStyle = isSel ? '#22c55e' : '#22d3ee';
+    let baseColor = isActive ? '#22d3ee' : '#0e8fa3';
+    if (isSel) baseColor = '#22c55e';
+
+    ctx.strokeStyle = baseColor;
     ctx.lineWidth = isSel ? lw + 2 : lw;
     ctx.lineCap = 'round';
     ctx.shadowColor = isSel ? 'rgba(34,197,94,.8)' : 'rgba(34,211,238,.35)';
-    ctx.shadowBlur = isSel ? 14 : 8;
+    ctx.shadowBlur = isSel ? 14 : (isActive ? 8 : 3);
     ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
     ctx.shadowBlur = 0;
 
-    ctx.fillStyle = isSel ? '#86efac' : '#fff';
+    ctx.fillStyle = isSel ? '#86efac' : (isActive ? '#fff' : '#6b6b74');
     ctx.beginPath(); ctx.arc(p1.x, p1.y, VERTEX_R + (isSel ? 1 : 0), 0, 7); ctx.fill();
     ctx.beginPath(); ctx.arc(p2.x, p2.y, VERTEX_R + (isSel ? 1 : 0), 0, 7); ctx.fill();
 
     if (!isSel && r > 12) {
       const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-      drawLabel(`${l.dist.toFixed(2)}m`, mx, my - 14);
+      drawLabel(`${l.dist.toFixed(2)}m`, mx, my - 14, isActive);
     }
 
     if (isSel && !isMoving) {
@@ -970,6 +1107,17 @@ function paint() {
       drawEditDistanceBadge(mx, my, l.dist);
     }
   }
+
+  if (S.polylineStart < S.lines.length) {
+    const l0 = S.lines[S.polylineStart];
+    const p0 = w2s(l0.x1, l0.y1);
+    ctx.fillStyle = 'rgba(34,211,238,.9)';
+    ctx.beginPath(); ctx.arc(p0.x, p0.y, 5, 0, 7); ctx.fill();
+    ctx.fillStyle = '#08080a';
+    ctx.beginPath(); ctx.arc(p0.x, p0.y, 2, 0, 7); ctx.fill();
+  }
+
+  drawTexts();
 
   const bp = w2s(S.base.x, S.base.y);
   drawPointer(bp.x, bp.y);
@@ -992,6 +1140,29 @@ function paint() {
   ctx.stroke();
 
   drawEditUI();
+
+  // Modo colocación de texto: crosshair rosa pulsante en el puntero
+  if (S.textMode === 'placing') {
+    const t = (performance.now() / 900) % 1;
+    ctx.strokeStyle = `rgba(244,114,182,${0.9 - t * 0.5})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(bp.x, bp.y, 20 + t * 14, 0, 7); ctx.stroke();
+
+    ctx.font = '700 10px "SF Mono",monospace';
+    const lbl = 'TEXTO';
+    const lw2 = ctx.measureText(lbl).width + 12;
+    ctx.fillStyle = 'rgba(8,8,10,.9)';
+    ctx.strokeStyle = 'rgba(244,114,182,.85)';
+    ctx.lineWidth = 1;
+    roundRect(bp.x + 20, bp.y - 10, lw2, 20, 10);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fbcfe8';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(lbl, bp.x + 20 + lw2 / 2, bp.y + .5);
+    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+
+    render();
+  }
 
   if (S.picking) {
     for (const v of collectVertices()) {
@@ -1028,10 +1199,17 @@ function paint() {
       ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     }
 
-    ctx.strokeStyle = 'rgba(34,211,238,.9)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = S.draggingPointer ? 'rgba(34,197,94,.95)' : 'rgba(34,211,238,.9)';
+    ctx.lineWidth = S.draggingPointer ? 2.5 : 2;
     const tt = (performance.now() / 1000) % 1.4;
     ctx.beginPath(); ctx.arc(bp.x, bp.y, 12 + tt * 12, 0, 7); ctx.stroke();
+
+    const gripR = 22;
+    ctx.strokeStyle = 'rgba(34,211,238,.35)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.arc(bp.x, bp.y, gripR, 0, 7); ctx.stroke();
+    ctx.setLineDash([]);
 
     render();
   }
@@ -1039,6 +1217,38 @@ function paint() {
   if (S.editMode === 'choose-point' || S.editMode === 'moving') render();
 
   drawUCS();
+}
+
+/* ============================================================
+   RENDER DE TEXTOS — color magenta
+   ============================================================ */
+function drawTexts() {
+  for (let i = 0; i < S.texts.length; i++) {
+    const t = S.texts[i];
+    const p = w2s(t.x, t.y);
+    const fontPx = t.size * S.view.s;
+    if (fontPx < 4 || fontPx > 800) continue; // fuera de rango visible
+
+    ctx.save();
+    ctx.font = `600 ${fontPx}px -apple-system,system-ui,sans-serif`;
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'start';
+
+    // Fondo semitransparente para legibilidad
+    const w = ctx.measureText(t.content).width;
+    const h = fontPx * 1.2;
+    ctx.fillStyle = 'rgba(8,8,10,.75)';
+    ctx.strokeStyle = 'rgba(244,114,182,.35)';
+    ctx.lineWidth = 1;
+    roundRect(p.x - 4, p.y - fontPx + 2, w + 8, h + 2, 4);
+    ctx.fill(); ctx.stroke();
+
+    // Texto
+    ctx.fillStyle = '#f9a8d4';
+    ctx.fillText(t.content, p.x, p.y);
+
+    ctx.restore();
+  }
 }
 
 function drawEditUI() {
@@ -1114,7 +1324,6 @@ function drawEditUI() {
     ctx.fillStyle = '#fff';
     ctx.beginPath(); ctx.arc(movingPt.x, movingPt.y, 3.5, 0, 7); ctx.fill();
 
-    // Indicador de dirección (la línea por la que se mueve el punto)
     const a = l.angle * Math.PI / 180;
     const dirLen = 90;
     const dx = Math.cos(a), dy = -Math.sin(a);
@@ -1130,7 +1339,6 @@ function drawEditUI() {
     ctx.beginPath(); ctx.moveTo(fromX, fromY); ctx.lineTo(toX, toY); ctx.stroke();
     ctx.setLineDash([]);
 
-    // Punta de flecha
     const tipAng = Math.atan2(dy, dx);
     ctx.fillStyle = 'rgba(34,197,94,.75)';
     ctx.beginPath();
@@ -1159,17 +1367,17 @@ function drawEditDistanceBadge(mx, my, dist) {
   ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
 }
 
-function drawLabel(text, x, y) {
+function drawLabel(text, x, y, isActive = true) {
   ctx.font = '600 11px "SF Mono","JetBrains Mono",Consolas,monospace';
   const w = ctx.measureText(text).width + 12;
   const h = 18;
   const rx = x - w / 2, ry = y - h / 2;
   ctx.fillStyle = 'rgba(8,8,10,.85)';
-  ctx.strokeStyle = 'rgba(245,158,11,.6)';
+  ctx.strokeStyle = isActive ? 'rgba(245,158,11,.6)' : 'rgba(245,158,11,.25)';
   ctx.lineWidth = 1;
   roundRect(rx, ry, w, h, 9);
   ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#fcd99a';
+  ctx.fillStyle = isActive ? '#fcd99a' : 'rgba(252,217,154,.5)';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(text, x, y + .5);
   ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
@@ -1269,13 +1477,19 @@ function formatMeters(m) {
 }
 
 function drawPointer(cx, cy) {
-  const isActive = S.draggingDial;
-  const color = isActive ? '#22c55e' : '#f59e0b';
+  const isDial = S.draggingDial;
+  const isFree = S.draggingPointer;
+  const isTextMode = S.textMode === 'placing';
+  let color = isDial ? '#22c55e' : (isFree ? '#22d3ee' : '#f59e0b');
+  if (isTextMode) color = '#f472b6';
+
   const rad = S.angle * Math.PI / 180;
   const arrowLen = 46, tail = 12, headLen = 14, headAng = Math.PI / 5.5;
 
   const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 34);
-  grad.addColorStop(0, isActive ? 'rgba(34,197,94,.22)' : 'rgba(245,158,11,.18)');
+  grad.addColorStop(0, isTextMode ? 'rgba(244,114,182,.28)' :
+                       (isDial ? 'rgba(34,197,94,.22)' :
+                       (isFree ? 'rgba(34,211,238,.28)' : 'rgba(245,158,11,.18)')));
   grad.addColorStop(1, 'rgba(245,158,11,0)');
   ctx.fillStyle = grad;
   ctx.beginPath(); ctx.arc(cx, cy, 34, 0, 7); ctx.fill();
@@ -1346,14 +1560,10 @@ function applySnap(deg) {
 
 function setAngle(deg, announce = false) {
   S.angle = applySnap(deg);
-  updateUI();
-  render();
+  updateUI(); render();
   if (announce) toast(`Rumbo ${S.angle.toFixed(0)}°`);
 }
 
-/* Crear segmento nuevo. Acepta dist negativa: invierte la dirección
-   respecto al ángulo configurado. La distancia almacenada es siempre
-   positiva. */
 function commitSegment(dist) {
   if (!isFinite(dist) || Math.abs(dist) < 1e-9) return;
 
@@ -1378,13 +1588,10 @@ function commitSegment(dist) {
 
   S.base = { x: tx, y: ty };
 
-  if (kp.visible && kp.mode === 'dist') {
-    kpClearInput();
-  }
+  if (kp.visible && kp.mode === 'dist') kpClearInput();
 
   ensureBaseVisible();
-  updateUI();
-  render();
+  updateUI(); render();
   const sign = dist < 0 ? '−' : '+';
   toast(`${sign}${actualDist.toFixed(3)}m @ ${actualAngle.toFixed(0)}°`, 'ok');
 }
@@ -1394,7 +1601,7 @@ function undo() {
   const l = S.lines.pop();
   S.redoStack.push(l);
   S.base = { x: l.x1, y: l.y1 };
-  if (S.polylineStart >= S.lines.length) S.polylineStart = 0;
+  if (S.polylineStart > S.lines.length) S.polylineStart = S.lines.length;
   if (S.selectedLineIdx >= S.lines.length) {
     S.selectedLineIdx = -1;
     S.editMode = 'idle';
@@ -1428,22 +1635,25 @@ function closePolygon() {
   S.redoStack.length = 0;
   S.lines.push({ x1: S.base.x, y1: S.base.y, x2: o.x, y2: o.y, dist: d, angle: ang });
   S.base = { x: o.x, y: o.y };
+  S.polylineStart = S.lines.length;
   updateUI(); render();
   toast(`Polígono cerrado · ${d.toFixed(2)}m`, 'ok');
 }
 
-function finishDrawing() {
-  if (!S.lines.length && !S.picking) {
-    toast('No hay dibujo activo', 'warn');
+function terminarPolyline() {
+  if (!S.lines.length) { toast('No hay dibujo para terminar', 'warn'); return; }
+  if (S.polylineStart >= S.lines.length) {
+    S.picking = true; S.pickSnap = null; S.newPolylineOnPick = false;
+    ui.bBase.classList.add('armed');
+    updateUI(); render();
+    toast('Puntero libre · arrástralo o toca el lienzo', 'ok');
     return;
   }
-  S.picking = true;
-  S.pickSnap = null;
-  S.newPolylineOnPick = true;
+  S.polylineStart = S.lines.length;
+  S.picking = true; S.pickSnap = null; S.newPolylineOnPick = false;
   ui.bBase.classList.add('armed');
-  updateUI();
-  render();
-  toast('Dibujo terminado · coloca nueva base', 'ok');
+  updateUI(); render();
+  toast('Polilínea terminada (abierta) · puntero libre', 'ok');
 }
 
 function ensureBaseVisible() {
@@ -1472,16 +1682,18 @@ function ensureBaseVisible() {
 }
 
 function zoomExtents() {
-  if (!S.lines.length) {
-    S.view.x = cv.width / 2;
-    S.view.y = cv.height / 2;
-    S.view.s = INIT_SCALE;
-    render(); return;
+  if (!S.lines.length && !S.texts.length) {
+    S.view.x = cv.width / 2; S.view.y = cv.height / 2;
+    S.view.s = INIT_SCALE; render(); return;
   }
   let minX = S.base.x, maxX = S.base.x, minY = S.base.y, maxY = S.base.y;
   for (const l of S.lines) {
     minX = Math.min(minX, l.x1, l.x2); maxX = Math.max(maxX, l.x1, l.x2);
     minY = Math.min(minY, l.y1, l.y2); maxY = Math.max(maxY, l.y1, l.y2);
+  }
+  for (const t of S.texts) {
+    minX = Math.min(minX, t.x); maxX = Math.max(maxX, t.x);
+    minY = Math.min(minY, t.y); maxY = Math.max(maxY, t.y);
   }
   const sx = Math.max(maxX - minX, 1e-6), sy = Math.max(maxY - minY, 1e-6);
   const pad = 90;
@@ -1502,6 +1714,20 @@ function resetView() {
   toast('Zoom reseteado');
 }
 
+function updatePointerFromPoint(sx, sy) {
+  const vert = findNearestVertex(sx, sy);
+  if (vert) {
+    S.base = { x: vert.x, y: vert.y };
+    S.pickSnap = vert;
+  } else {
+    const w = s2w(sx, sy);
+    const target = snapToGrid(w.x, w.y);
+    S.base = target;
+    S.pickSnap = null;
+  }
+  updateUI(); render();
+}
+
 /* ============================================================
    INTERACCIÓN TÁCTIL
    ============================================================ */
@@ -1516,6 +1742,17 @@ function localXY(e) {
 function handleTap(p) {
   if (kp.visible && kp.mode === 'edit-dist') return;
 
+  // Modo colocar texto: tap abre modal
+  if (S.textMode === 'placing') {
+    const w = s2w(p.x, p.y);
+    const target = snapToGrid(w.x, w.y);
+    S.pendingTextPos = target;
+    cancelTextPlacement();
+    openTextModal({ edit: false });
+    return;
+  }
+
+  // 1. Botones flotantes del segmento seleccionado
   const rects = getEditButtonRects();
   for (const r of rects) {
     if (p.x >= r.x && p.x <= r.x + r.w &&
@@ -1531,6 +1768,7 @@ function handleTap(p) {
     }
   }
 
+  // 2. Modo choose-point
   if (S.editMode === 'choose-point' && S.selectedLineIdx >= 0) {
     const l = S.lines[S.selectedLineIdx];
     if (l) {
@@ -1552,20 +1790,23 @@ function handleTap(p) {
     return;
   }
 
+  // 3. Modo segment-selected
   if (S.editMode === 'segment-selected') {
     const idx = findSegmentAt(p.x, p.y);
-    if (idx === S.selectedLineIdx) {
-      deselectSegment();
-    } else if (idx >= 0) {
-      S.selectedLineIdx = idx;
-      render();
-    } else {
-      deselectSegment();
-    }
+    if (idx === S.selectedLineIdx) deselectSegment();
+    else if (idx >= 0) { S.selectedLineIdx = idx; render(); }
+    else deselectSegment();
     return;
   }
 
+  // 4. Modo idle: primero textos, luego segmentos
   if (S.editMode === 'idle') {
+    const ti = findTextAt(p.x, p.y);
+    if (ti >= 0) {
+      S.editingTextIdx = ti;
+      openTextModal({ edit: true, idx: ti });
+      return;
+    }
     const idx = findSegmentAt(p.x, p.y);
     if (idx >= 0) {
       S.selectedLineIdx = idx;
@@ -1582,6 +1823,7 @@ cv.addEventListener('pointerdown', e => {
 
   if (ptrs.size === 2) {
     S.draggingDial = false;
+    S.draggingPointer = false;
     panning = false;
     const [a, b] = [...ptrs.values()];
     const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -1596,11 +1838,21 @@ cv.addEventListener('pointerdown', e => {
   if (ptrs.size === 1) {
     const bp = w2s(S.base.x, S.base.y);
     const dist = Math.hypot(p.x - bp.x, p.y - bp.y);
-    if (!S.picking && S.editMode !== 'choose-point' && S.editMode !== 'moving' && dist <= DIAL_R + 26) {
+
+    if (S.picking && dist <= POINTER_HIT_R) {
+      S.draggingPointer = true;
+      panning = false;
+      S.pickSnap = null;
+      updatePointerFromPoint(p.x, p.y);
+      return;
+    }
+
+    if (!S.picking && S.textMode !== 'placing' && S.editMode !== 'choose-point' && S.editMode !== 'moving' && dist <= DIAL_R + 26) {
       S.draggingDial = true;
       updateAngleFromPoint(p.x, p.y, bp);
       return;
     }
+
     panning = true;
     panStart = { x: p.x, y: p.y, vx: S.view.x, vy: S.view.y, moved: false };
 
@@ -1626,17 +1878,18 @@ cv.addEventListener('pointermove', e => {
     S.view.s = ns;
     S.view.x = mid.x - pinch.wMid.x * ns;
     S.view.y = mid.y + pinch.wMid.y * ns;
-    updateUI();
-    render();
+    updateUI(); render();
+    return;
+  }
+
+  if (S.draggingPointer) {
+    updatePointerFromPoint(p.x, p.y);
     return;
   }
 
   if (S.picking && ptrs.size === 1) {
     const cand = findNearestVertex(p.x, p.y);
-    if (cand !== S.pickSnap) {
-      S.pickSnap = cand;
-      render();
-    }
+    if (cand !== S.pickSnap) { S.pickSnap = cand; render(); }
   }
 
   if (S.draggingDial) {
@@ -1648,7 +1901,7 @@ cv.addEventListener('pointermove', e => {
   if (panning && panStart) {
     const dx = p.x - panStart.x, dy = p.y - panStart.y;
     if (Math.hypot(dx, dy) > 3) panStart.moved = true;
-    if (panStart.moved && !S.picking) {
+    if (panStart.moved && !S.picking && S.textMode !== 'placing') {
       S.view.x = panStart.vx + dx;
       S.view.y = panStart.vy + dy;
       render();
@@ -1663,36 +1916,36 @@ cv.addEventListener('pointerup', e => {
 
   const wasTap = panning && panStart && !panStart.moved;
 
-  if (S.draggingDial) {
-    S.draggingDial = false;
-    render();
+  if (S.draggingPointer) {
+    S.draggingPointer = false;
+    S.picking = false;
+    S.pickSnap = null;
+    ui.bBase.classList.remove('armed');
+    updateUI(); render();
+    toast('Puntero colocado · listo para medir', 'ok');
+    if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
     return;
   }
 
-  if (wasTap && S.picking && p) {
-    let target = null;
-    let label = '';
+  if (S.draggingDial) { S.draggingDial = false; render(); return; }
 
+  if (wasTap && S.picking && p) {
+    let target = null, label = '';
     const vert = findNearestVertex(p.x, p.y);
     if (vert) {
       target = { x: vert.x, y: vert.y };
-      label = 'Base → vértice (imán)';
+      label = 'Puntero → vértice (imán)';
     } else {
       const w = s2w(p.x, p.y);
       target = snapToGrid(w.x, w.y);
-      label = S.snapMode === 'free'
-        ? 'Base libre'
-        : `Base → rejilla (${S.snapMode.toUpperCase()})`;
+      label = S.snapMode === 'free' ? 'Puntero libre' : `Puntero → rejilla (${S.snapMode.toUpperCase()})`;
     }
-
     S.base = target;
-
     if (S.newPolylineOnPick) {
       S.polylineStart = S.lines.length;
       S.newPolylineOnPick = false;
       label += ' · nueva polilínea';
     }
-
     S.picking = false;
     S.pickSnap = null;
     ui.bBase.classList.remove('armed');
@@ -1708,6 +1961,7 @@ cv.addEventListener('pointerup', e => {
 cv.addEventListener('pointercancel', e => {
   ptrs.delete(e.pointerId);
   S.draggingDial = false;
+  S.draggingPointer = false;
   S.pickSnap = null;
   if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
 });
@@ -1844,74 +2098,219 @@ async function enableCompass() {
 }
 
 /* ============================================================
-   EXPORTAR DXF
+   EXPORTAR DXF — con capas separadas y colores distintos
+   ------------------------------------------------------------
+   Capas:
+     MUROS    (cyan,    ACI 4)  → líneas
+     COTAS    (amarillo, ACI 2)  → cotas (líneas auxiliares + texto)
+     TEXTOS   (magenta, ACI 6)  → textos personalizados
+     VERTICES (blanco,  ACI 7)  → puntos de vértice
+     EJES     (rojo,    ACI 1)  → ejes
    ============================================================ */
 async function exportDXF() {
-  if (!S.lines.length) { toast('Nada que exportar', 'warn'); return; }
+  if (!S.lines.length && !S.texts.length) {
+    toast('Nada que exportar', 'warn');
+    return;
+  }
 
   let out = '';
   const w = s => { out += s; };
+  const n = v => Number.isFinite(v) ? v.toFixed(4) : '0.0000';
 
+  // ===== HEADER =====
   w('0\nSECTION\n2\nHEADER\n');
   w('9\n$ACADVER\n1\nAC1014\n');
   w('9\n$INSUNITS\n70\n6\n');
   w('9\n$MEASUREMENT\n70\n1\n');
+  w('9\n$LUNITS\n70\n2\n');
+  w('9\n$LUPREC\n70\n3\n');
+  w('9\n$EXTMIN\n');
+  // Bounding box aproximado
+  let mnx = 0, mny = 0, mxx = 0, mxy = 0;
+  let first = true;
+  for (const l of S.lines) {
+    for (const p of [[l.x1,l.y1],[l.x2,l.y2]]) {
+      if (first) { mnx = mxx = p[0]; mny = mxy = p[1]; first = false; }
+      else {
+        mnx = Math.min(mnx, p[0]); mxx = Math.max(mxx, p[0]);
+        mny = Math.min(mny, p[1]); mxy = Math.max(mxy, p[1]);
+      }
+    }
+  }
+  for (const t of S.texts) {
+    if (first) { mnx = mxx = t.x; mny = mxy = t.y; first = false; }
+    else {
+      mnx = Math.min(mnx, t.x); mxx = Math.max(mxx, t.x);
+      mny = Math.min(mny, t.y); mxy = Math.max(mxy, t.y);
+    }
+  }
+  w(`10\n${n(mnx)}\n20\n${n(mny)}\n30\n0.0\n`);
+  w('9\n$EXTMAX\n');
+  w(`10\n${n(mxx)}\n20\n${n(mxy)}\n30\n0.0\n`);
   w('0\nENDSEC\n');
 
+  // ===== TABLES =====
   w('0\nSECTION\n2\nTABLES\n');
-  w('0\nTABLE\n2\nLAYER\n70\n4\n');
-  w('0\nLAYER\n2\nMUROS\n70\n0\n62\n4\n6\nCONTINUOUS\n');
-  w('0\nLAYER\n2\nCOTAS\n70\n0\n62\n2\n6\nCONTINUOUS\n');
-  w('0\nLAYER\n2\nVERTICES\n70\n0\n62\n7\n6\nCONTINUOUS\n');
-  w('0\nLAYER\n2\nEJES\n70\n0\n62\n1\n6\nCONTINUOUS\n');
+
+  // LTYPE continuo (necesario antes de LAYER en R12)
+  w('0\nTABLE\n2\nLTYPE\n70\n1\n');
+  w('0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0.0\n');
   w('0\nENDTAB\n');
+
+  // LAYER con las 5 capas, cada una con su color ACI
+  w('0\nTABLE\n2\nLAYER\n70\n5\n');
+  for (const k of Object.keys(LAYERS)) {
+    const L = LAYERS[k];
+    w(`0\nLAYER\n2\n${L.name}\n70\n0\n62\n${L.aci}\n6\nCONTINUOUS\n`);
+  }
+  w('0\nENDTAB\n');
+
+  // STYLE
   w('0\nTABLE\n2\nSTYLE\n70\n1\n');
   w('0\nSTYLE\n2\nSTANDARD\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n0.2\n3\ntxt\n4\n\n');
   w('0\nENDTAB\n');
+
   w('0\nENDSEC\n');
 
+  // ===== ENTITIES =====
   w('0\nSECTION\n2\nENTITIES\n');
 
+  // -- Capa VERTICES (color 7 = blanco) --
+  // Puntos en cada vértice único
+  const seenV = new Set();
+  const keyV = (x, y) => `${x.toFixed(4)}|${y.toFixed(4)}`;
+  for (const l of S.lines) {
+    const k1 = keyV(l.x1, l.y1);
+    if (!seenV.has(k1)) {
+      seenV.add(k1);
+      w('0\nPOINT\n8\nVERTICES\n');
+      w(`10\n${n(l.x1)}\n20\n${n(l.y1)}\n30\n0.0\n`);
+    }
+    const k2 = keyV(l.x2, l.y2);
+    if (!seenV.has(k2)) {
+      seenV.add(k2);
+      w('0\nPOINT\n8\nVERTICES\n');
+      w(`10\n${n(l.x2)}\n20\n${n(l.y2)}\n30\n0.0\n`);
+    }
+  }
+
+  // -- Capa MUROS (color 4 = cyan) --
+  // Líneas de los segmentos
   for (const l of S.lines) {
     w('0\nLINE\n8\nMUROS\n');
-    w(`10\n${l.x1.toFixed(4)}\n20\n${l.y1.toFixed(4)}\n30\n0.0\n`);
-    w(`11\n${l.x2.toFixed(4)}\n21\n${l.y2.toFixed(4)}\n31\n0.0\n`);
+    w(`10\n${n(l.x1)}\n20\n${n(l.y1)}\n30\n0.0\n`);
+    w(`11\n${n(l.x2)}\n21\n${n(l.y2)}\n31\n0.0\n`);
+  }
 
-    w('0\nPOINT\n8\nVERTICES\n');
-    w(`10\n${l.x1.toFixed(4)}\n20\n${l.y1.toFixed(4)}\n30\n0.0\n`);
-  }
-  if (S.lines.length) {
-    const last = S.lines[S.lines.length - 1];
-    w('0\nPOINT\n8\nVERTICES\n');
-    w(`10\n${last.x2.toFixed(4)}\n20\n${last.y2.toFixed(4)}\n30\n0.0\n`);
-  }
+  // -- Capa COTAS (color 2 = amarillo) --
+  // Cada cota = 2 líneas de extensión + 1 línea de cota + 1 texto
+  const DIM_OFFSET = 0.30;     // distancia perpendicular en metros
+  const DIM_GAP    = 0.08;     // gap entre extremo y línea de extensión
+  const DIM_TICK   = 0.10;     // media longitud del tick diagonal
 
   for (const l of S.lines) {
-    const mx = (l.x1 + l.x2) / 2, my = (l.y1 + l.y2) / 2;
-    const rad = l.angle * Math.PI / 180;
-    const px = -Math.sin(rad) * 0.25, py = Math.cos(rad) * 0.25;
-    const tx = mx + px, ty = my + py;
+    const dx = l.x2 - l.x1, dy = l.y2 - l.y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-9) continue;
+    const ux = dx / len, uy = dy / len;      // unitario a lo largo del segmento
+    const px = -uy, py = ux;                 // perpendicular (izquierda)
+
+    // Extremos desplazados (línea de cota paralela)
+    const a = { x: l.x1 + px * DIM_OFFSET, y: l.y1 + py * DIM_OFFSET };
+    const b = { x: l.x2 + px * DIM_OFFSET, y: l.y2 + py * DIM_OFFSET };
+
+    // Línea de extensión desde p1 hasta a (con gap)
+    const a1 = { x: l.x1 + px * DIM_GAP, y: l.y1 + py * DIM_GAP };
+    const a2 = { x: a.x + px * DIM_GAP * .6, y: a.y + py * DIM_GAP * .6 };
+    w('0\nLINE\n8\nCOTAS\n');
+    w(`10\n${n(a1.x)}\n20\n${n(a1.y)}\n30\n0.0\n`);
+    w(`11\n${n(a2.x)}\n21\n${n(a2.y)}\n31\n0.0\n`);
+
+    // Línea de extensión desde p2 hasta b (con gap)
+    const b1 = { x: l.x2 + px * DIM_GAP, y: l.y2 + py * DIM_GAP };
+    const b2 = { x: b.x + px * DIM_GAP * .6, y: b.y + py * DIM_GAP * .6 };
+    w('0\nLINE\n8\nCOTAS\n');
+    w(`10\n${n(b1.x)}\n20\n${n(b1.y)}\n30\n0.0\n`);
+    w(`11\n${n(b2.x)}\n21\n${n(b2.y)}\n31\n0.0\n`);
+
+    // Línea de cota principal (paralela al segmento)
+    w('0\nLINE\n8\nCOTAS\n');
+    w(`10\n${n(a.x)}\n20\n${n(a.y)}\n30\n0.0\n`);
+    w(`11\n${n(b.x)}\n21\n${n(b.y)}\n31\n0.0\n`);
+
+    // Ticks diagonales en los extremos (estilo arquitectónico)
+    const tx = -ux * DIM_TICK - px * DIM_TICK * 0.5;
+    const ty = -uy * DIM_TICK - py * DIM_TICK * 0.5;
+    const tx2 = ux * DIM_TICK + px * DIM_TICK * 0.5;
+    const ty2 = uy * DIM_TICK + py * DIM_TICK * 0.5;
+
+    w('0\nLINE\n8\nCOTAS\n');
+    w(`10\n${n(a.x - tx)}\n20\n${n(a.y - ty)}\n30\n0.0\n`);
+    w(`11\n${n(a.x + tx2)}\n21\n${n(a.y + ty2)}\n31\n0.0\n`);
+
+    w('0\nLINE\n8\nCOTAS\n');
+    w(`10\n${n(b.x - tx)}\n20\n${n(b.y - ty)}\n30\n0.0\n`);
+    w(`11\n${n(b.x + tx2)}\n21\n${n(b.y + ty2)}\n31\n0.0\n`);
+
+    // Texto con la distancia, rotado según el ángulo del segmento
+    // (se endereza si el ángulo queda al revés para que sea legible)
+    let textAngle = l.angle;
+    if (textAngle > 90 && textAngle < 270) textAngle -= 180;
+
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
+    // Desplazamiento pequeño para que no pise la línea
+    const textOffset = px * 0.08;
+    const textOffsetY = py * 0.08;
+
+    const textH = 0.18;  // altura del texto de cota
 
     w('0\nTEXT\n8\nCOTAS\n');
-    w(`10\n${tx.toFixed(4)}\n20\n${ty.toFixed(4)}\n30\n0.0\n`);
-    w('40\n0.20\n');
-    w(`1\n${l.dist.toFixed(2)}m / ${l.angle.toFixed(1)}°\n`);
-    w(`50\n${(l.angle > 90 && l.angle < 270) ? (l.angle - 180).toFixed(1) : l.angle.toFixed(1)}\n`);
+    w(`10\n${n(mx + textOffset)}\n20\n${n(my + textOffsetY)}\n30\n0.0\n`);
+    w(`40\n${textH.toFixed(4)}\n`);
+    w(`1\n${l.dist.toFixed(3)}m\n`);
+    w(`50\n${textAngle.toFixed(2)}\n`);
     w('7\nSTANDARD\n');
     w('72\n1\n73\n2\n');
-    w(`11\n${tx.toFixed(4)}\n21\n${ty.toFixed(4)}\n31\n0.0\n`);
+    w(`11\n${n(mx + textOffset)}\n21\n${n(my + textOffsetY)}\n31\n0.0\n`);
   }
+
+  // -- Capa TEXTOS (color 6 = magenta) --
+  for (const t of S.texts) {
+    w('0\nTEXT\n8\nTEXTOS\n');
+    w(`10\n${n(t.x)}\n20\n${n(t.y)}\n30\n0.0\n`);
+    w(`40\n${t.size.toFixed(4)}\n`);
+    w(`1\n${t.content.replace(/\n/g, ' ')}\n`);
+    w(`50\n${(t.angle || 0).toFixed(2)}\n`);
+    w('7\nSTANDARD\n');
+    w('72\n0\n73\n0\n');
+    w(`11\n${n(t.x)}\n21\n${n(t.y)}\n31\n0.0\n`);
+  }
+
+  // -- Capa EJES (color 1 = rojo) --
+  // Cruz en el origen
+  const axLen = 0.5;
+  w('0\nLINE\n8\nEJES\n');
+  w(`10\n${n(-axLen)}\n20\n0.0\n30\n0.0\n`);
+  w(`11\n${n(axLen)}\n21\n0.0\n31\n0.0\n`);
+  w('0\nLINE\n8\nEJES\n');
+  w('10\n0.0\n20\n' + n(-axLen) + '\n30\n0.0\n');
+  w('11\n0.0\n21\n' + n(axLen) + '\n31\n0.0\n');
 
   w('0\nENDSEC\n0\nEOF\n');
 
+  // ===== Descarga / Compartir =====
   const fname = `PLANO_${new Date().toISOString().slice(0,10)}_${Date.now()%10000}.dxf`;
   const blob = new Blob([out], { type: 'application/dxf' });
 
   try {
     const file = new File([blob], fname, { type: 'application/dxf' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Levantamiento DXF',
-        text: `${S.lines.length} segmentos` });
+      await navigator.share({
+        files: [file],
+        title: 'Levantamiento DXF',
+        text: `${S.lines.length} segmentos · ${S.texts.length} textos`,
+      });
       toast('DXF compartido', 'ok');
       return;
     }
@@ -1957,7 +2356,7 @@ ui.mOk.onclick = () => {
   if (cb) cb(v);
 };
 ui.mCancel.onclick = closeModal;
-ui.overlay.onclick = () => { closeModal(); closeSheet(); };
+ui.overlay.onclick = () => { closeModal(); closeSheet(); closeTextModal(); cancelTextPlacement(); };
 ui.mInput.addEventListener('keydown', e => { if (e.key === 'Enter') ui.mOk.click(); });
 
 function openSheet() {
@@ -1966,7 +2365,8 @@ function openSheet() {
 }
 function closeSheet() {
   ui.sheet.classList.remove('show');
-  if (!ui.modal.classList.contains('show')) ui.overlay.classList.remove('show');
+  if (!ui.modal.classList.contains('show') && !ui.textModal.classList.contains('show'))
+    ui.overlay.classList.remove('show');
 }
 
 function toast(msg, kind = '') {
@@ -1988,6 +2388,7 @@ function updateUI() {
   ui.tDist.textContent = S.lastDist.toFixed(3);
   ui.tAng.textContent = `${S.angle.toFixed(0).padStart(3, '0')}°`;
   ui.tSeg.textContent = S.lines.length;
+  ui.tTxt.textContent = S.texts.length;
   const z = S.view.s;
   if (z >= 1e5)      ui.tZoom.textContent = (z / 1000).toFixed(0) + 'k';
   else if (z >= 1000) ui.tZoom.textContent = (z / 1000).toFixed(1) + 'k';
@@ -1997,9 +2398,11 @@ function updateUI() {
 
   ui.bUndo.disabled = !S.lines.length;
   ui.bRedo.disabled = !S.redoStack.length;
+  ui.bTerminar.disabled = !S.lines.length;
 
   ui.bAngle.classList.toggle('armed', kp.visible && kp.mode === 'angle');
   ui.bDist.classList.toggle('armed', kp.visible && kp.mode === 'dist');
+  ui.bText.classList.toggle('pink-armed', S.textMode === 'placing');
 
   ui.chipOrtho.classList.toggle('on', S.snapMode === 'ortho');
   ui.chipOrtho.textContent = S.snapMode === 'ortho' ? '◱ ORTO' : '◱ LIBRE';
@@ -2013,10 +2416,11 @@ function updateUI() {
 
   ui.gridVal.textContent = S.grid ? 'ON' : 'OFF';
   ui.gridVal.style.color = S.grid ? 'var(--ac)' : '';
-  ui.dxfSub.textContent = `${S.lines.length} segmentos`;
+  ui.dxfSub.textContent = `${S.lines.length} segmentos · ${S.texts.length} textos`;
 
   ui.magSub.textContent = `Radio ${S.pickSnapPx} px`;
   ui.magVal.textContent = S.pickSnapPx;
+  ui.defTextSize.textContent = S.defaultTextSize.toFixed(2);
 
   ui.kpState.textContent = !kp.visible ? 'OFF' : (kp.pinned ? 'FIJO' : 'ON');
   ui.kpState.style.color = kp.visible ? 'var(--ac)' : '';
@@ -2066,53 +2470,36 @@ ui.bUndo.onclick = undo;
 ui.bRedo.onclick = redo;
 
 ui.bAngle.onclick = () => {
+  cancelTextPlacement();
   if (kp.visible && kp.mode === 'angle') kpClose();
   else { deselectSegment(); kpOpen('angle'); }
 };
 
 ui.bDist.onclick = () => {
+  cancelTextPlacement();
   if (kp.visible && kp.mode === 'dist') kpClose();
   else { deselectSegment(); kpOpen('dist'); }
 };
 
 ui.bBase.onclick = () => {
+  cancelTextPlacement();
   deselectSegment();
   S.picking = !S.picking;
   S.pickSnap = null;
   if (S.picking) S.newPolylineOnPick = false;
   ui.bBase.classList.toggle('armed', S.picking);
-  toast(S.picking ? 'Toca el lienzo · imán de vértices activo' : 'Cancelado');
+  toast(S.picking ? 'Puntero libre · arrástralo o toca el lienzo' : 'Cancelado');
   render();
 };
 
-let lastCloseTap = 0;
-let closeConfirmTimer = null;
+ui.bTerminar.onclick = () => {
+  cancelTextPlacement();
+  terminarPolyline();
+};
 
 ui.bClose.onclick = () => {
-  const now = performance.now();
-
-  if (now - lastCloseTap < 850) {
-    clearTimeout(closeConfirmTimer);
-    lastCloseTap = 0;
-    ui.bClose.classList.remove('confirming');
-    ui.bCloseLbl.textContent = 'CERRAR';
-    finishDrawing();
-  } else {
-    lastCloseTap = now;
-    closePolygon();
-
-    ui.bClose.classList.remove('confirming');
-    void ui.bClose.offsetWidth;
-    ui.bClose.classList.add('confirming');
-    ui.bCloseLbl.textContent = '2× TERMINAR';
-
-    clearTimeout(closeConfirmTimer);
-    closeConfirmTimer = setTimeout(() => {
-      ui.bClose.classList.remove('confirming');
-      ui.bCloseLbl.textContent = 'CERRAR';
-      lastCloseTap = 0;
-    }, 850);
-  }
+  cancelTextPlacement();
+  closePolygon();
 };
 
 ui.optBLE.onclick = () => { closeSheet(); setTimeout(connectBLE, 220); };
@@ -2161,6 +2548,23 @@ ui.optKpPin.onclick = () => {
   closeSheet();
 };
 
+ui.optDefaultTextSize.onclick = () => {
+  openModal({
+    title: 'Tamaño texto por defecto',
+    desc: 'Altura del texto en metros (0.05 – 5)',
+    def: String(S.defaultTextSize),
+    type: 'number',
+    cb: v => {
+      const n = parseFloat(String(v).replace(',', '.'));
+      if (!isNaN(n)) {
+        S.defaultTextSize = Math.max(0.05, Math.min(5, n));
+        updateUI();
+        toast(`Tamaño por defecto: ${S.defaultTextSize}m`, 'pk');
+      }
+    }
+  });
+};
+
 ui.optExtents.onclick = () => { closeSheet(); setTimeout(zoomExtents, 200); };
 ui.optReset.onclick = () => { closeSheet(); setTimeout(resetView, 200); };
 ui.optDxf.onclick = () => { closeSheet(); setTimeout(exportDXF, 200); };
@@ -2170,17 +2574,18 @@ ui.optClear.onclick = () => {
   setTimeout(() => {
     openModal({
       title: '¿Borrar todo?',
-      desc: 'Se eliminarán todos los segmentos y vértices. Escribe BORRAR para confirmar.',
+      desc: 'Se eliminarán todos los segmentos, textos y vértices. Escribe BORRAR para confirmar.',
       def: '',
       cb: v => {
         if (String(v).trim().toUpperCase() === 'BORRAR') {
-          S.lines = []; S.redoStack = [];
+          S.lines = []; S.texts = []; S.redoStack = [];
           S.base = { x: 0, y: 0 }; S.lastDist = 0;
           S.polylineStart = 0;
           S.newPolylineOnPick = false;
           S.selectedLineIdx = -1;
           S.editMode = 'idle';
           S.movingEnd = null;
+          cancelTextPlacement();
           resetView();
           updateUI(); render();
           toast('Dibujo borrado', 'warn');
