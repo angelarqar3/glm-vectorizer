@@ -505,15 +505,387 @@ const ZOOM_MIN = 1e-5;
 const ZOOM_MAX = 1e7;
 
 const POINTER_HIT_R = 44;
+const TEXT_DRAG_THRESHOLD = 6;
 
-const LAYERS = {
-  MUROS:    { name: 'MUROS',    aci: 4 },
-  COTAS:    { name: 'COTAS',    aci: 2 },
-  TEXTOS:   { name: 'TEXTOS',   aci: 6 },
-  VERTICES: { name: 'VERTICES', aci: 7 },
-  EJES:     { name: 'EJES',     aci: 1 },
-};
+/* ============================================================
+   ▶ MÓDULO DE EXPORTACIÓN DXF (independiente)
+   ------------------------------------------------------------
+   API pública:
+     DXFExporter.export(model, options)  → Promise<{ok, fname, reason}>
+     DXFExporter.build(model, options)   → string (contenido DXF)
 
+   Dependencias externas (inyectables):
+     - toast(msg, kind)      opcional, para feedback al usuario
+     - onDownload(blob, name) opcional, sobrescribe el guardado por defecto
+
+   Configuración de capas:
+     - DXFExporter.setLayers({ MUROS:{aci:4}, ... })
+     - Por defecto usa las capas incorporadas (DEFAULT_LAYERS)
+
+   Formato: DXF R12 (AC1009) — universal, sin HANDLES ni STRUCTURE.
+   Para extender: añadir métodos _writeX(...) y llamarlos en build().
+   ============================================================ */
+const DXFExporter = (() => {
+
+  /* ---------- Capas por defecto ---------- */
+  const DEFAULT_LAYERS = {
+    MUROS:    { name: 'MUROS',    aci: 4 },  // cyan
+    COTAS:    { name: 'COTAS',    aci: 2 },  // amarillo
+    TEXTOS:   { name: 'TEXTOS',   aci: 6 },  // magenta
+    VERTICES: { name: 'VERTICES', aci: 7 },  // blanco
+    EJES:     { name: 'EJES',     aci: 1 },  // rojo
+  };
+
+  /* ---------- Opciones por defecto ---------- */
+  const DEFAULTS = {
+    version: 'AC1009',               // R12
+    dimOffset: 0.30,                 // distancia perpendicular de la línea de cota
+    dimGap:    0.08,                 // gap entre extremo y línea de extensión
+    dimTick:   0.10,                 // media longitud del tick diagonal
+    dimTextH:  0.18,                 // altura del texto de cota
+    axisLen:   0.50,                 // longitud de la cruz en el origen
+    extMargin: 0.50,                 // margen de extents
+    layers: null,                    // si null → DEFAULT_LAYERS
+    toastFn: null,                   // función toast(msg, kind)
+    onDownload: null,                // (blob, fname) => Promise|void
+  };
+
+  /* ---------- Helpers ---------- */
+  const n4 = v => Number.isFinite(v) ? v.toFixed(4) : '0.0000';
+
+  function sanitizeText(s) {
+    return String(s || '')
+      .replace(/\r?\n/g, ' ')
+      .replace(/[\x00-\x1F]/g, '')
+      .slice(0, 250); // límite DXF razonable
+  }
+
+  function computeExtents(model, margin) {
+    let mnx = 0, mny = 0, mxx = 0, mxy = 0, first = true;
+    for (const l of (model.lines || [])) {
+      for (const p of [[l.x1, l.y1], [l.x2, l.y2]]) {
+        if (first) { mnx = mxx = p[0]; mny = mxy = p[1]; first = false; }
+        else {
+          mnx = Math.min(mnx, p[0]); mxx = Math.max(mxx, p[0]);
+          mny = Math.min(mny, p[1]); mxy = Math.max(mxy, p[1]);
+        }
+      }
+    }
+    for (const t of (model.texts || [])) {
+      if (first) { mnx = mxx = t.x; mny = mxy = t.y; first = false; }
+      else {
+        mnx = Math.min(mnx, t.x); mxx = Math.max(mxx, t.x);
+        mny = Math.min(mny, t.y); mxy = Math.max(mxy, t.y);
+      }
+    }
+    if (first) { mnx = 0; mny = 0; mxx = 100; mxy = 100; }
+    return {
+      mnx: mnx - margin,
+      mny: mny - margin,
+      mxx: mxx + margin,
+      mxy: mxy + margin,
+    };
+  }
+
+  /* ============================================================
+     SECCIONES DEL DXF
+     ============================================================ */
+
+  function writeHeader(w, ext) {
+    w('0\nSECTION\n2\nHEADER\n');
+    w('9\n$ACADVER\n1\nAC1009\n');
+    w('9\n$INSBASE\n10\n0.0\n20\n0.0\n30\n0.0\n');
+    w('9\n$EXTMIN\n');
+    w(`10\n${n4(ext.mnx)}\n20\n${n4(ext.mny)}\n30\n0.0\n`);
+    w('9\n$EXTMAX\n');
+    w(`10\n${n4(ext.mxx)}\n20\n${n4(ext.mxy)}\n30\n0.0\n`);
+    w('9\n$LUNITS\n70\n2\n');
+    w('9\n$LUPREC\n70\n3\n');
+    w('9\n$LIMMIN\n10\n0.0\n20\n0.0\n');
+    w('9\n$LIMMAX\n10\n420.0\n20\n297.0\n');
+    w('9\n$ORTHOMODE\n70\n0\n');
+    w('9\n$PDMODE\n70\n0\n');
+    w('9\n$PDSIZE\n40\n0.0\n');
+    w('9\n$TEXTSIZE\n40\n0.2\n');
+    w('0\nENDSEC\n');
+  }
+
+  function writeTables(w, layers) {
+    w('0\nSECTION\n2\nTABLES\n');
+
+    // LTYPE
+    w('0\nTABLE\n2\nLTYPE\n70\n1\n');
+    w('0\nLTYPE\n2\nCONTINUOUS\n70\n64\n');
+    w('3\nSolid line\n72\n65\n73\n0\n40\n0.0\n');
+    w('0\nENDTAB\n');
+
+    // LAYER
+    const keys = Object.keys(layers);
+    w(`0\nTABLE\n2\nLAYER\n70\n${keys.length}\n`);
+    for (const k of keys) {
+      const L = layers[k];
+      w(`0\nLAYER\n2\n${L.name}\n70\n0\n62\n${L.aci}\n6\nCONTINUOUS\n`);
+    }
+    w('0\nENDTAB\n');
+
+    // STYLE
+    w('0\nTABLE\n2\nSTYLE\n70\n1\n');
+    w('0\nSTYLE\n2\nSTANDARD\n70\n0\n');
+    w('40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n0.2\n');
+    w('3\ntxt\n4\n\n');
+    w('0\nENDTAB\n');
+
+    w('0\nENDSEC\n');
+  }
+
+  function writeBlocks(w) {
+    // Sección obligatoria aunque sea vacía
+    w('0\nSECTION\n2\nBLOCKS\n');
+    w('0\nENDSEC\n');
+  }
+
+  function writeEntities(w, model, cfg, layers) {
+    w('0\nSECTION\n2\nENTITIES\n');
+
+    _writeVertices(w, model, layers);
+    _writeWalls(w, model, layers);
+    _writeDimensions(w, model, cfg, layers);
+    _writeUserTexts(w, model, layers);
+    _writeAxes(w, cfg, layers);
+
+    w('0\nENDSEC\n');
+  }
+
+  /* ---------- Sub-writers (extensibles) ---------- */
+
+  function _writeVertices(w, model, layers) {
+    const seen = new Set();
+    const key = (x, y) => `${x.toFixed(4)}|${y.toFixed(4)}`;
+    const L = layers.VERTICES.name;
+    for (const l of model.lines || []) {
+      const k1 = key(l.x1, l.y1);
+      if (!seen.has(k1)) {
+        seen.add(k1);
+        w(`0\nPOINT\n8\n${L}\n`);
+        w(`10\n${n4(l.x1)}\n20\n${n4(l.y1)}\n30\n0.0\n`);
+      }
+      const k2 = key(l.x2, l.y2);
+      if (!seen.has(k2)) {
+        seen.add(k2);
+        w(`0\nPOINT\n8\n${L}\n`);
+        w(`10\n${n4(l.x2)}\n20\n${n4(l.y2)}\n30\n0.0\n`);
+      }
+    }
+  }
+
+  function _writeWalls(w, model, layers) {
+    const L = layers.MUROS.name;
+    for (const l of model.lines || []) {
+      w(`0\nLINE\n8\n${L}\n`);
+      w(`10\n${n4(l.x1)}\n20\n${n4(l.y1)}\n30\n0.0\n`);
+      w(`11\n${n4(l.x2)}\n21\n${n4(l.y2)}\n31\n0.0\n`);
+    }
+  }
+
+  function _writeDimensions(w, model, cfg, layers) {
+    const L = layers.COTAS.name;
+    for (const l of model.lines || []) {
+      const dx = l.x2 - l.x1, dy = l.y2 - l.y1;
+      const len = Math.hypot(dx, dy);
+      if (len < 1e-9) continue;
+      const ux = dx / len, uy = dy / len;
+      const px = -uy, py = ux;
+
+      const a = { x: l.x1 + px * cfg.dimOffset, y: l.y1 + py * cfg.dimOffset };
+      const b = { x: l.x2 + px * cfg.dimOffset, y: l.y2 + py * cfg.dimOffset };
+
+      // Línea de extensión 1
+      const a1 = { x: l.x1 + px * cfg.dimGap, y: l.y1 + py * cfg.dimGap };
+      const a2 = { x: a.x + px * cfg.dimGap * .6, y: a.y + py * cfg.dimGap * .6 };
+      w(`0\nLINE\n8\n${L}\n`);
+      w(`10\n${n4(a1.x)}\n20\n${n4(a1.y)}\n30\n0.0\n`);
+      w(`11\n${n4(a2.x)}\n21\n${n4(a2.y)}\n31\n0.0\n`);
+
+      // Línea de extensión 2
+      const b1 = { x: l.x2 + px * cfg.dimGap, y: l.y2 + py * cfg.dimGap };
+      const b2 = { x: b.x + px * cfg.dimGap * .6, y: b.y + py * cfg.dimGap * .6 };
+      w(`0\nLINE\n8\n${L}\n`);
+      w(`10\n${n4(b1.x)}\n20\n${n4(b1.y)}\n30\n0.0\n`);
+      w(`11\n${n4(b2.x)}\n21\n${n4(b2.y)}\n31\n0.0\n`);
+
+      // Línea de cota paralela
+      w(`0\nLINE\n8\n${L}\n`);
+      w(`10\n${n4(a.x)}\n20\n${n4(a.y)}\n30\n0.0\n`);
+      w(`11\n${n4(b.x)}\n21\n${n4(b.y)}\n31\n0.0\n`);
+
+      // Ticks diagonales en extremos
+      const tx = -ux * cfg.dimTick - px * cfg.dimTick * 0.5;
+      const ty = -uy * cfg.dimTick - py * cfg.dimTick * 0.5;
+      const tx2 = ux * cfg.dimTick + px * cfg.dimTick * 0.5;
+      const ty2 = uy * cfg.dimTick + py * cfg.dimTick * 0.5;
+
+      w(`0\nLINE\n8\n${L}\n`);
+      w(`10\n${n4(a.x - tx)}\n20\n${n4(a.y - ty)}\n30\n0.0\n`);
+      w(`11\n${n4(a.x + tx2)}\n21\n${n4(a.y + ty2)}\n31\n0.0\n`);
+
+      w(`0\nLINE\n8\n${L}\n`);
+      w(`10\n${n4(b.x - tx)}\n20\n${n4(b.y - ty)}\n30\n0.0\n`);
+      w(`11\n${n4(b.x + tx2)}\n21\n${n4(b.y + ty2)}\n31\n0.0\n`);
+
+      // Texto con la distancia
+      let angle = l.angle;
+      if (angle > 90 && angle < 270) angle -= 180;
+
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      const ox = px * 0.08;
+      const oy = py * 0.08;
+
+      w(`0\nTEXT\n8\n${L}\n`);
+      w(`10\n${n4(mx + ox)}\n20\n${n4(my + oy)}\n30\n0.0\n`);
+      w(`40\n${cfg.dimTextH.toFixed(4)}\n`);
+      w(`1\n${l.dist.toFixed(3)}m\n`);
+      w(`50\n${angle.toFixed(2)}\n`);
+      w('7\nSTANDARD\n');
+      w('72\n1\n73\n2\n');
+      w(`11\n${n4(mx + ox)}\n21\n${n4(my + oy)}\n31\n0.0\n`);
+    }
+  }
+
+  function _writeUserTexts(w, model, layers) {
+    const L = layers.TEXTOS.name;
+    for (const t of model.texts || []) {
+      const txt = sanitizeText(t.content);
+      if (!txt) continue;
+      w(`0\nTEXT\n8\n${L}\n`);
+      w(`10\n${n4(t.x)}\n20\n${n4(t.y)}\n30\n0.0\n`);
+      w(`40\n${(t.size || 0.25).toFixed(4)}\n`);
+      w(`1\n${txt}\n`);
+      w(`50\n${(t.angle || 0).toFixed(2)}\n`);
+      w('7\nSTANDARD\n');
+      w('72\n0\n73\n0\n');
+    }
+  }
+
+  function _writeAxes(w, cfg, layers) {
+    const L = layers.EJES.name;
+    const a = cfg.axisLen;
+    w(`0\nLINE\n8\n${L}\n`);
+    w(`10\n${n4(-a)}\n20\n0.0\n30\n0.0\n`);
+    w(`11\n${n4(a)}\n21\n0.0\n31\n0.0\n`);
+    w(`0\nLINE\n8\n${L}\n`);
+    w(`10\n0.0\n20\n${n4(-a)}\n30\n0.0\n`);
+    w(`11\n0.0\n21\n${n4(a)}\n31\n0.0\n`);
+  }
+
+  /* ============================================================
+     API PÚBLICA
+     ============================================================ */
+
+  /**
+   * Genera el contenido DXF como string.
+   * @param {Object} model  { lines:[{x1,y1,x2,y2,dist,angle}], texts:[{x,y,content,size,angle}] }
+   * @param {Object} options Overrides de DEFAULTS
+   * @returns {string}
+   */
+  function build(model, options = {}) {
+    const cfg = { ...DEFAULTS, ...options };
+    const layers = cfg.layers || DEFAULT_LAYERS;
+
+    const ext = computeExtents(model, cfg.extMargin);
+
+    let out = '';
+    const w = s => { out += s; };
+
+    writeHeader(w, ext);
+    writeTables(w, layers);
+    writeBlocks(w);
+    writeEntities(w, model, cfg, layers);
+    w('0\nEOF\n');
+
+    return out;
+  }
+
+  /**
+   * Genera el DXF y dispara la descarga / compartir.
+   * @returns {Promise<{ok:boolean, fname?:string, reason?:string}>}
+   */
+  async function exportModel(model, options = {}) {
+    const cfg = { ...DEFAULTS, ...options };
+    const toastFn = cfg.toastFn || ((m, k) => {});
+
+    if (!(model.lines?.length) && !(model.texts?.length)) {
+      toastFn('Nada que exportar', 'warn');
+      return { ok: false, reason: 'empty' };
+    }
+
+    let dxf;
+    try {
+      dxf = build(model, cfg);
+    } catch (err) {
+      console.error('[DXFExporter] build error', err);
+      toastFn('Error generando DXF', 'err');
+      return { ok: false, reason: 'build-error' };
+    }
+
+    const fname = `PLANO_${new Date().toISOString().slice(0,10)}_${Date.now() % 10000}.dxf`;
+    const blob = new Blob([dxf], { type: 'application/dxf' });
+
+    // Callback personalizado
+    if (typeof cfg.onDownload === 'function') {
+      await cfg.onDownload(blob, fname);
+      toastFn('DXF exportado', 'ok');
+      return { ok: true, fname };
+    }
+
+    // Web Share (móvil)
+    try {
+      const file = new File([blob], fname, { type: 'application/dxf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Levantamiento DXF',
+          text: `${model.lines?.length || 0} segmentos · ${model.texts?.length || 0} textos`,
+        });
+        toastFn('DXF compartido', 'ok');
+        return { ok: true, fname };
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return { ok: false, reason: 'aborted' };
+    }
+
+    // Descarga fallback
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toastFn('DXF descargado', 'ok');
+    return { ok: true, fname };
+  }
+
+  /**
+   * Configura las capas del exportador.
+   * @param {Object} layers { MUROS:{name,aci}, ... }
+   */
+  function setLayers(layers) {
+    // Guardar en el objeto DEFAULTS para persistir entre llamadas
+    DEFAULTS.layers = { ...layers };
+  }
+
+  return {
+    build,
+    export: exportModel,
+    setLayers,
+    DEFAULT_LAYERS,
+    DEFAULTS,
+  };
+})();
+
+/* ============================================================
+   ESTADO PRINCIPAL
+   ============================================================ */
 const S = {
   lines: [],
   texts: [],
@@ -539,10 +911,14 @@ const S = {
   editMode: 'idle',
   movingEnd: null,
   // Texto
-  textMode: 'idle',        // 'idle' | 'placing'
-  pendingTextPos: null,    // {x,y} en mundo — persiste hasta aplicar/cancelar
+  textMode: 'idle',
+  pendingTextPos: null,
   editingTextIdx: -1,
   defaultTextSize: 0.25,
+  // Arrastre de textos
+  draggingText: null,
+  textDragMoved: false,
+  textDragStart: null,
 };
 const INIT_SCALE = 50;
 const DIAL_R = 56;
@@ -788,10 +1164,9 @@ function getEditButtonRects() {
 }
 
 /* ============================================================
-   TEXTO — flujo corregido
+   TEXTO
    ============================================================ */
 function startTextPlacement() {
-  // Cancelar otros modos
   deselectSegment();
   cancelTextModalOnly();
   if (kp.visible) kpHide();
@@ -808,14 +1183,12 @@ function startTextPlacement() {
   render();
 }
 
-/* Oculta el chip y sale de "placing" pero NO borra pendingTextPos */
 function leaveTextPlacing() {
   S.textMode = 'idle';
   ui.chipText.style.display = 'none';
   ui.bText.classList.remove('pink-armed');
 }
 
-/* Cancela por completo: chip oculto + pendingTextPos limpio */
 function cancelTextPlacement() {
   S.pendingTextPos = null;
   leaveTextPlacing();
@@ -1162,7 +1535,6 @@ function paint() {
 
   drawEditUI();
 
-  // Modo colocación de texto: crosshair rosa pulsante
   if (S.textMode === 'placing') {
     const t = (performance.now() / 900) % 1;
     ctx.strokeStyle = `rgba(244,114,182,${0.9 - t * 0.5})`;
@@ -1247,6 +1619,9 @@ function drawTexts() {
     const fontPx = t.size * S.view.s;
     if (fontPx < 4 || fontPx > 800) continue;
 
+    const isDragging = (S.draggingText === i);
+    const isEditing = (S.editingTextIdx === i);
+
     ctx.save();
     ctx.font = `600 ${fontPx}px -apple-system,system-ui,sans-serif`;
     ctx.textBaseline = 'alphabetic';
@@ -1254,16 +1629,64 @@ function drawTexts() {
 
     const w = ctx.measureText(t.content).width;
     const h = fontPx * 1.2;
-    ctx.fillStyle = 'rgba(8,8,10,.75)';
-    ctx.strokeStyle = 'rgba(244,114,182,.35)';
-    ctx.lineWidth = 1;
+
+    ctx.fillStyle = isDragging ? 'rgba(244,114,182,.18)' : 'rgba(8,8,10,.75)';
+    ctx.strokeStyle = isDragging ? 'rgba(244,114,182,.95)' : (isEditing ? 'rgba(244,114,182,.7)' : 'rgba(244,114,182,.35)');
+    ctx.lineWidth = isDragging ? 2 : 1;
     roundRect(p.x - 4, p.y - fontPx + 2, w + 8, h + 2, 4);
     ctx.fill(); ctx.stroke();
 
-    ctx.fillStyle = '#f9a8d4';
+    ctx.fillStyle = isDragging ? '#fbcfe8' : '#f9a8d4';
     ctx.fillText(t.content, p.x, p.y);
 
     ctx.restore();
+
+    if (isDragging) {
+      const tt = (performance.now() / 700) % 1;
+      ctx.strokeStyle = `rgba(244,114,182,${0.9 - tt * 0.6})`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 12 + tt * 8, 0, 7); ctx.stroke();
+
+      ctx.fillStyle = '#f472b6';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, 7); ctx.fill();
+
+      const label = `${t.x.toFixed(2)}, ${t.y.toFixed(2)}`;
+      ctx.font = '700 10px "SF Mono","JetBrains Mono",Consolas,monospace';
+      const lw = ctx.measureText(label).width + 14;
+      ctx.fillStyle = 'rgba(8,8,10,.92)';
+      ctx.strokeStyle = 'rgba(244,114,182,.8)';
+      ctx.lineWidth = 1;
+      roundRect(p.x + 14, p.y + 8, lw, 18, 9);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fbcfe8';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(label, p.x + 14 + lw / 2, p.y + 17.5);
+      ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+
+      if (S.pickSnap) {
+        const sp = w2s(S.pickSnap.x, S.pickSnap.y);
+        ctx.strokeStyle = 'rgba(34,197,94,.95)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 10, 0, 7); ctx.stroke();
+
+        const lbl = 'SNAP';
+        ctx.font = '700 10px "SF Mono",monospace';
+        const lw2 = ctx.measureText(lbl).width + 10;
+        ctx.fillStyle = 'rgba(8,8,10,.9)';
+        ctx.strokeStyle = 'rgba(34,197,94,.8)';
+        ctx.lineWidth = 1;
+        roundRect(sp.x + 14, sp.y - 9, lw2, 18, 9);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#86efac';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(lbl, sp.x + 14 + lw2 / 2, sp.y + .5);
+        ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+      }
+
+      render();
+    }
   }
 }
 
@@ -1758,12 +2181,10 @@ function localXY(e) {
 function handleTap(p) {
   if (kp.visible && kp.mode === 'edit-dist') return;
 
-  // ✅ MODO TEXTO: colocar y abrir modal — NO cancelamos pos aquí
   if (S.textMode === 'placing') {
     const w = s2w(p.x, p.y);
     const target = snapToGrid(w.x, w.y);
     S.pendingTextPos = { x: target.x, y: target.y };
-    // Solo ocultamos el chip y salimos de "placing", pero conservamos pendingTextPos
     leaveTextPlacing();
     render();
     openTextModal({ edit: false });
@@ -1838,6 +2259,7 @@ cv.addEventListener('pointerdown', e => {
   if (ptrs.size === 2) {
     S.draggingDial = false;
     S.draggingPointer = false;
+    S.draggingText = null;
     panning = false;
     const [a, b] = [...ptrs.values()];
     const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -1859,6 +2281,27 @@ cv.addEventListener('pointerdown', e => {
       S.pickSnap = null;
       updatePointerFromPoint(p.x, p.y);
       return;
+    }
+
+    if (S.editMode === 'idle' && !S.picking && S.textMode !== 'placing') {
+      const ti = findTextAt(p.x, p.y, 8);
+      if (ti >= 0) {
+        const t = S.texts[ti];
+        const tScr = w2s(t.x, t.y);
+        S.draggingText = ti;
+        S.textDragMoved = false;
+        S.textDragStart = {
+          sx: p.x, sy: p.y,
+          originalX: t.x,
+          originalY: t.y,
+          offsetX: tScr.x - p.x,
+          offsetY: tScr.y - p.y,
+        };
+        panning = false;
+        S.pickSnap = null;
+        render();
+        return;
+      }
     }
 
     if (!S.picking && S.textMode !== 'placing' && S.editMode !== 'choose-point' && S.editMode !== 'moving' && dist <= DIAL_R + 26) {
@@ -1896,6 +2339,37 @@ cv.addEventListener('pointermove', e => {
     return;
   }
 
+  if (S.draggingText !== null) {
+    const t = S.texts[S.draggingText];
+    if (!t) { S.draggingText = null; return; }
+
+    const dx = p.x - S.textDragStart.sx;
+    const dy = p.y - S.textDragStart.sy;
+    if (!S.textDragMoved && Math.hypot(dx, dy) > TEXT_DRAG_THRESHOLD) {
+      S.textDragMoved = true;
+    }
+
+    if (S.textDragMoved) {
+      const targetSx = p.x + S.textDragStart.offsetX;
+      const targetSy = p.y + S.textDragStart.offsetY;
+
+      const vert = findNearestVertex(targetSx, targetSy);
+      let newPos;
+      if (vert) {
+        newPos = { x: vert.x, y: vert.y };
+        S.pickSnap = vert;
+      } else {
+        const raw = s2w(targetSx, targetSy);
+        newPos = snapToGrid(raw.x, raw.y);
+        S.pickSnap = null;
+      }
+      t.x = newPos.x;
+      t.y = newPos.y;
+      updateUI(); render();
+    }
+    return;
+  }
+
   if (S.draggingPointer) {
     updatePointerFromPoint(p.x, p.y);
     return;
@@ -1927,6 +2401,40 @@ cv.addEventListener('pointerup', e => {
   const p = ptrs.get(e.pointerId);
   ptrs.delete(e.pointerId);
   try { cv.releasePointerCapture(e.pointerId); } catch (_) {}
+
+  if (S.draggingText !== null) {
+    const idx = S.draggingText;
+    const wasDrag = S.textDragMoved;
+
+    if (!wasDrag) {
+      if (S.texts[idx]) {
+        S.texts[idx].x = S.textDragStart.originalX;
+        S.texts[idx].y = S.textDragStart.originalY;
+      }
+      S.draggingText = null;
+      S.textDragMoved = false;
+      S.textDragStart = null;
+      S.pickSnap = null;
+      render();
+
+      if (S.texts[idx]) {
+        S.editingTextIdx = idx;
+        openTextModal({ edit: true, idx });
+      }
+      if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
+      return;
+    }
+
+    S.draggingText = null;
+    S.textDragMoved = false;
+    S.textDragStart = null;
+    S.pickSnap = null;
+    updateUI(); render();
+    const t = S.texts[idx];
+    if (t) toast(`Texto en ${t.x.toFixed(2)}, ${t.y.toFixed(2)}`, 'pk');
+    if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
+    return;
+  }
 
   const wasTap = panning && panStart && !panStart.moved;
 
@@ -1976,6 +2484,9 @@ cv.addEventListener('pointercancel', e => {
   ptrs.delete(e.pointerId);
   S.draggingDial = false;
   S.draggingPointer = false;
+  S.draggingText = null;
+  S.textDragMoved = false;
+  S.textDragStart = null;
   S.pickSnap = null;
   if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
 });
@@ -2112,200 +2623,13 @@ async function enableCompass() {
 }
 
 /* ============================================================
-   EXPORTAR DXF con capas separadas
+   EXPORTACIÓN — sólo puente al módulo DXFExporter
    ============================================================ */
 async function exportDXF() {
-  if (!S.lines.length && !S.texts.length) {
-    toast('Nada que exportar', 'warn');
-    return;
-  }
-
-  let out = '';
-  const w = s => { out += s; };
-  const n = v => Number.isFinite(v) ? v.toFixed(4) : '0.0000';
-
-  w('0\nSECTION\n2\nHEADER\n');
-  w('9\n$ACADVER\n1\nAC1014\n');
-  w('9\n$INSUNITS\n70\n6\n');
-  w('9\n$MEASUREMENT\n70\n1\n');
-  w('9\n$LUNITS\n70\n2\n');
-  w('9\n$LUPREC\n70\n3\n');
-
-  let mnx = 0, mny = 0, mxx = 0, mxy = 0, first = true;
-  for (const l of S.lines) {
-    for (const p of [[l.x1,l.y1],[l.x2,l.y2]]) {
-      if (first) { mnx = mxx = p[0]; mny = mxy = p[1]; first = false; }
-      else {
-        mnx = Math.min(mnx, p[0]); mxx = Math.max(mxx, p[0]);
-        mny = Math.min(mny, p[1]); mxy = Math.max(mxy, p[1]);
-      }
-    }
-  }
-  for (const t of S.texts) {
-    if (first) { mnx = mxx = t.x; mny = mxy = t.y; first = false; }
-    else {
-      mnx = Math.min(mnx, t.x); mxx = Math.max(mxx, t.x);
-      mny = Math.min(mny, t.y); mxy = Math.max(mxy, t.y);
-    }
-  }
-  w('9\n$EXTMIN\n');
-  w(`10\n${n(mnx)}\n20\n${n(mny)}\n30\n0.0\n`);
-  w('9\n$EXTMAX\n');
-  w(`10\n${n(mxx)}\n20\n${n(mxy)}\n30\n0.0\n`);
-  w('0\nENDSEC\n');
-
-  w('0\nSECTION\n2\nTABLES\n');
-  w('0\nTABLE\n2\nLTYPE\n70\n1\n');
-  w('0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0.0\n');
-  w('0\nENDTAB\n');
-
-  w('0\nTABLE\n2\nLAYER\n70\n5\n');
-  for (const k of Object.keys(LAYERS)) {
-    const L = LAYERS[k];
-    w(`0\nLAYER\n2\n${L.name}\n70\n0\n62\n${L.aci}\n6\nCONTINUOUS\n`);
-  }
-  w('0\nENDTAB\n');
-
-  w('0\nTABLE\n2\nSTYLE\n70\n1\n');
-  w('0\nSTYLE\n2\nSTANDARD\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n0.2\n3\ntxt\n4\n\n');
-  w('0\nENDTAB\n');
-  w('0\nENDSEC\n');
-
-  w('0\nSECTION\n2\nENTITIES\n');
-
-  // VERTICES
-  const seenV = new Set();
-  const keyV = (x, y) => `${x.toFixed(4)}|${y.toFixed(4)}`;
-  for (const l of S.lines) {
-    const k1 = keyV(l.x1, l.y1);
-    if (!seenV.has(k1)) {
-      seenV.add(k1);
-      w('0\nPOINT\n8\nVERTICES\n');
-      w(`10\n${n(l.x1)}\n20\n${n(l.y1)}\n30\n0.0\n`);
-    }
-    const k2 = keyV(l.x2, l.y2);
-    if (!seenV.has(k2)) {
-      seenV.add(k2);
-      w('0\nPOINT\n8\nVERTICES\n');
-      w(`10\n${n(l.x2)}\n20\n${n(l.y2)}\n30\n0.0\n`);
-    }
-  }
-
-  // MUROS
-  for (const l of S.lines) {
-    w('0\nLINE\n8\nMUROS\n');
-    w(`10\n${n(l.x1)}\n20\n${n(l.y1)}\n30\n0.0\n`);
-    w(`11\n${n(l.x2)}\n21\n${n(l.y2)}\n31\n0.0\n`);
-  }
-
-  // COTAS
-  const DIM_OFFSET = 0.30, DIM_GAP = 0.08, DIM_TICK = 0.10;
-  for (const l of S.lines) {
-    const dx = l.x2 - l.x1, dy = l.y2 - l.y1;
-    const len = Math.hypot(dx, dy);
-    if (len < 1e-9) continue;
-    const ux = dx / len, uy = dy / len;
-    const px = -uy, py = ux;
-
-    const a = { x: l.x1 + px * DIM_OFFSET, y: l.y1 + py * DIM_OFFSET };
-    const b = { x: l.x2 + px * DIM_OFFSET, y: l.y2 + py * DIM_OFFSET };
-
-    const a1 = { x: l.x1 + px * DIM_GAP, y: l.y1 + py * DIM_GAP };
-    const a2 = { x: a.x + px * DIM_GAP * .6, y: a.y + py * DIM_GAP * .6 };
-    w('0\nLINE\n8\nCOTAS\n');
-    w(`10\n${n(a1.x)}\n20\n${n(a1.y)}\n30\n0.0\n`);
-    w(`11\n${n(a2.x)}\n21\n${n(a2.y)}\n31\n0.0\n`);
-
-    const b1 = { x: l.x2 + px * DIM_GAP, y: l.y2 + py * DIM_GAP };
-    const b2 = { x: b.x + px * DIM_GAP * .6, y: b.y + py * DIM_GAP * .6 };
-    w('0\nLINE\n8\nCOTAS\n');
-    w(`10\n${n(b1.x)}\n20\n${n(b1.y)}\n30\n0.0\n`);
-    w(`11\n${n(b2.x)}\n21\n${n(b2.y)}\n31\n0.0\n`);
-
-    w('0\nLINE\n8\nCOTAS\n');
-    w(`10\n${n(a.x)}\n20\n${n(a.y)}\n30\n0.0\n`);
-    w(`11\n${n(b.x)}\n21\n${n(b.y)}\n31\n0.0\n`);
-
-    const tx = -ux * DIM_TICK - px * DIM_TICK * 0.5;
-    const ty = -uy * DIM_TICK - py * DIM_TICK * 0.5;
-    const tx2 = ux * DIM_TICK + px * DIM_TICK * 0.5;
-    const ty2 = uy * DIM_TICK + py * DIM_TICK * 0.5;
-
-    w('0\nLINE\n8\nCOTAS\n');
-    w(`10\n${n(a.x - tx)}\n20\n${n(a.y - ty)}\n30\n0.0\n`);
-    w(`11\n${n(a.x + tx2)}\n21\n${n(a.y + ty2)}\n31\n0.0\n`);
-
-    w('0\nLINE\n8\nCOTAS\n');
-    w(`10\n${n(b.x - tx)}\n20\n${n(b.y - ty)}\n30\n0.0\n`);
-    w(`11\n${n(b.x + tx2)}\n21\n${n(b.y + ty2)}\n31\n0.0\n`);
-
-    let textAngle = l.angle;
-    if (textAngle > 90 && textAngle < 270) textAngle -= 180;
-
-    const mx = (a.x + b.x) / 2;
-    const my = (a.y + b.y) / 2;
-    const textOffsetX = px * 0.08;
-    const textOffsetY = py * 0.08;
-    const textH = 0.18;
-
-    w('0\nTEXT\n8\nCOTAS\n');
-    w(`10\n${n(mx + textOffsetX)}\n20\n${n(my + textOffsetY)}\n30\n0.0\n`);
-    w(`40\n${textH.toFixed(4)}\n`);
-    w(`1\n${l.dist.toFixed(3)}m\n`);
-    w(`50\n${textAngle.toFixed(2)}\n`);
-    w('7\nSTANDARD\n');
-    w('72\n1\n73\n2\n');
-    w(`11\n${n(mx + textOffsetX)}\n21\n${n(my + textOffsetY)}\n31\n0.0\n`);
-  }
-
-  // TEXTOS
-  for (const t of S.texts) {
-    w('0\nTEXT\n8\nTEXTOS\n');
-    w(`10\n${n(t.x)}\n20\n${n(t.y)}\n30\n0.0\n`);
-    w(`40\n${t.size.toFixed(4)}\n`);
-    w(`1\n${t.content.replace(/\n/g, ' ')}\n`);
-    w(`50\n${(t.angle || 0).toFixed(2)}\n`);
-    w('7\nSTANDARD\n');
-    w('72\n0\n73\n0\n');
-    w(`11\n${n(t.x)}\n21\n${n(t.y)}\n31\n0.0\n`);
-  }
-
-  // EJES
-  const axLen = 0.5;
-  w('0\nLINE\n8\nEJES\n');
-  w(`10\n${n(-axLen)}\n20\n0.0\n30\n0.0\n`);
-  w(`11\n${n(axLen)}\n21\n0.0\n31\n0.0\n`);
-  w('0\nLINE\n8\nEJES\n');
-  w('10\n0.0\n20\n' + n(-axLen) + '\n30\n0.0\n');
-  w('11\n0.0\n21\n' + n(axLen) + '\n31\n0.0\n');
-
-  w('0\nENDSEC\n0\nEOF\n');
-
-  const fname = `PLANO_${new Date().toISOString().slice(0,10)}_${Date.now()%10000}.dxf`;
-  const blob = new Blob([out], { type: 'application/dxf' });
-
-  try {
-    const file = new File([blob], fname, { type: 'application/dxf' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        files: [file],
-        title: 'Levantamiento DXF',
-        text: `${S.lines.length} segmentos · ${S.texts.length} textos`,
-      });
-      toast('DXF compartido', 'ok');
-      return;
-    }
-  } catch (e) {
-    if (e.name === 'AbortError') return;
-  }
-
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = fname;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast('DXF descargado', 'ok');
+  await DXFExporter.export(
+    { lines: S.lines, texts: S.texts },
+    { toastFn: toast }
+  );
 }
 
 /* ============================================================
