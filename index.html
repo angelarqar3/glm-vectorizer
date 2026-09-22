@@ -61,7 +61,7 @@ canvas{display:block;width:100%;height:100%}
 .chip:active{transform:scale(.95)}
 .chip.on{background:var(--ac-d);border-color:rgba(34,211,238,.55);color:var(--ac)}
 .chip.warn{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.55);color:var(--wn)}
-.chip.text-mode{background:var(--pk-d);border-color:rgba(244,114,182,.55);color:var(--pk)}
+.chip.text-mode{background:var(--pk-d);border-color:rgba(244,114,182,.65);color:var(--pk)}
 
 .rose{
   position:absolute;top:10px;right:10px;width:58px;height:58px;border-radius:50%;
@@ -322,7 +322,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="chips">
     <button class="chip on" id="chipOrtho">◱ ORTO</button>
     <button class="chip" id="chipSnap">∠ SNAP 90°</button>
-    <button class="chip" id="chipText" style="display:none">✎ TEXTO · TOCA EL LIENZO</button>
+    <button class="chip text-mode" id="chipText" style="display:none">✎ TEXTO · TOCA EL LIENZO</button>
   </div>
 
   <div class="rose hidden" id="rose">
@@ -506,19 +506,17 @@ const ZOOM_MAX = 1e7;
 
 const POINTER_HIT_R = 44;
 
-/* Colores de capas del DXF (ACI — AutoCAD Color Index)
-   1=rojo 2=amarillo 3=verde 4=cyan 5=azul 6=magenta 7=blanco/negro */
 const LAYERS = {
-  MUROS:    { name: 'MUROS',    aci: 4 },  // cyan
-  COTAS:    { name: 'COTAS',    aci: 2 },  // amarillo
-  TEXTOS:   { name: 'TEXTOS',   aci: 6 },  // magenta
-  VERTICES: { name: 'VERTICES', aci: 7 },  // blanco
-  EJES:     { name: 'EJES',     aci: 1 },  // rojo
+  MUROS:    { name: 'MUROS',    aci: 4 },
+  COTAS:    { name: 'COTAS',    aci: 2 },
+  TEXTOS:   { name: 'TEXTOS',   aci: 6 },
+  VERTICES: { name: 'VERTICES', aci: 7 },
+  EJES:     { name: 'EJES',     aci: 1 },
 };
 
 const S = {
   lines: [],
-  texts: [],           // [{x, y, content, size, angle}]
+  texts: [],
   redoStack: [],
   base: { x: 0, y: 0 },
   angle: 90,
@@ -542,9 +540,9 @@ const S = {
   movingEnd: null,
   // Texto
   textMode: 'idle',        // 'idle' | 'placing'
-  pendingTextPos: null,    // {x,y} en mundo
+  pendingTextPos: null,    // {x,y} en mundo — persiste hasta aplicar/cancelar
   editingTextIdx: -1,
-  defaultTextSize: 0.25,   // m
+  defaultTextSize: 0.25,
 };
 const INIT_SCALE = 50;
 const DIAL_R = 56;
@@ -598,7 +596,7 @@ function w2s(wx, wy) { return { x: S.view.x + wx * S.view.s, y: S.view.y - wy * 
 function s2w(sx, sy) { return { x: (sx - S.view.x) / S.view.s, y: -(sy - S.view.y) / S.view.s }; }
 
 /* ============================================================
-   SNAP MAGNÉTICO
+   SNAP
    ============================================================ */
 function collectVertices() {
   const v = [];
@@ -626,7 +624,7 @@ function snapToGrid(wx, wy) {
 }
 
 /* ============================================================
-   HIT-TEST DE SEGMENTOS Y TEXTOS
+   HIT TEST
    ============================================================ */
 function pointToSegmentDist(px, py, x1, y1, x2, y2) {
   const vx = x2 - x1, vy = y2 - y1;
@@ -650,7 +648,6 @@ function findSegmentAt(sx, sy, maxPx = S.lineTapPx) {
   return best;
 }
 
-/* Bounding box en pantalla del texto */
 function getTextBounds(t) {
   const p = w2s(t.x, t.y);
   const fontPx = Math.max(8, t.size * S.view.s);
@@ -791,24 +788,46 @@ function getEditButtonRects() {
 }
 
 /* ============================================================
-   TEXTO — flujo de creación / edición
+   TEXTO — flujo corregido
    ============================================================ */
 function startTextPlacement() {
-  // Salir de otros modos
+  // Cancelar otros modos
   deselectSegment();
+  cancelTextModalOnly();
   if (kp.visible) kpHide();
+  if (S.picking) {
+    S.picking = false;
+    S.pickSnap = null;
+    ui.bBase.classList.remove('armed');
+  }
   S.textMode = 'placing';
   S.pendingTextPos = null;
   ui.chipText.style.display = 'flex';
   ui.bText.classList.add('pink-armed');
   toast('Toca el lienzo para ubicar el texto', 'pk');
+  render();
 }
 
-function cancelTextPlacement() {
+/* Oculta el chip y sale de "placing" pero NO borra pendingTextPos */
+function leaveTextPlacing() {
   S.textMode = 'idle';
-  S.pendingTextPos = null;
   ui.chipText.style.display = 'none';
   ui.bText.classList.remove('pink-armed');
+}
+
+/* Cancela por completo: chip oculto + pendingTextPos limpio */
+function cancelTextPlacement() {
+  S.pendingTextPos = null;
+  leaveTextPlacing();
+  render();
+}
+
+function cancelTextModalOnly() {
+  ui.textModal.classList.remove('show');
+  if (!ui.modal.classList.contains('show') && !ui.sheet.classList.contains('show')) {
+    ui.overlay.classList.remove('show');
+  }
+  S.editingTextIdx = -1;
 }
 
 function openTextModal({ edit = false, idx = -1 } = {}) {
@@ -836,8 +855,10 @@ function openTextModal({ edit = false, idx = -1 } = {}) {
 }
 
 function closeTextModal() {
-  ui.overlay.classList.remove('show');
   ui.textModal.classList.remove('show');
+  if (!ui.modal.classList.contains('show') && !ui.sheet.classList.contains('show')) {
+    ui.overlay.classList.remove('show');
+  }
   S.editingTextIdx = -1;
 }
 
@@ -866,12 +887,10 @@ ui.tmOk.onclick = () => {
   const clampedSize = Math.max(0.01, Math.min(50, size));
 
   if (S.editingTextIdx >= 0) {
-    // Editar
     S.texts[S.editingTextIdx].content = content;
     S.texts[S.editingTextIdx].size = clampedSize;
     toast(`Texto actualizado · ${clampedSize.toFixed(2)}m`, 'pk');
   } else if (S.pendingTextPos) {
-    // Crear
     S.texts.push({
       x: S.pendingTextPos.x,
       y: S.pendingTextPos.y,
@@ -881,6 +900,8 @@ ui.tmOk.onclick = () => {
     });
     S.defaultTextSize = clampedSize;
     toast(`Texto añadido · ${clampedSize.toFixed(2)}m`, 'pk');
+  } else {
+    toast('Sin posición para el texto', 'err');
   }
 
   closeTextModal();
@@ -1141,7 +1162,7 @@ function paint() {
 
   drawEditUI();
 
-  // Modo colocación de texto: crosshair rosa pulsante en el puntero
+  // Modo colocación de texto: crosshair rosa pulsante
   if (S.textMode === 'placing') {
     const t = (performance.now() / 900) % 1;
     ctx.strokeStyle = `rgba(244,114,182,${0.9 - t * 0.5})`;
@@ -1219,22 +1240,18 @@ function paint() {
   drawUCS();
 }
 
-/* ============================================================
-   RENDER DE TEXTOS — color magenta
-   ============================================================ */
 function drawTexts() {
   for (let i = 0; i < S.texts.length; i++) {
     const t = S.texts[i];
     const p = w2s(t.x, t.y);
     const fontPx = t.size * S.view.s;
-    if (fontPx < 4 || fontPx > 800) continue; // fuera de rango visible
+    if (fontPx < 4 || fontPx > 800) continue;
 
     ctx.save();
     ctx.font = `600 ${fontPx}px -apple-system,system-ui,sans-serif`;
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'start';
 
-    // Fondo semitransparente para legibilidad
     const w = ctx.measureText(t.content).width;
     const h = fontPx * 1.2;
     ctx.fillStyle = 'rgba(8,8,10,.75)';
@@ -1243,7 +1260,6 @@ function drawTexts() {
     roundRect(p.x - 4, p.y - fontPx + 2, w + 8, h + 2, 4);
     ctx.fill(); ctx.stroke();
 
-    // Texto
     ctx.fillStyle = '#f9a8d4';
     ctx.fillText(t.content, p.x, p.y);
 
@@ -1742,17 +1758,18 @@ function localXY(e) {
 function handleTap(p) {
   if (kp.visible && kp.mode === 'edit-dist') return;
 
-  // Modo colocar texto: tap abre modal
+  // ✅ MODO TEXTO: colocar y abrir modal — NO cancelamos pos aquí
   if (S.textMode === 'placing') {
     const w = s2w(p.x, p.y);
     const target = snapToGrid(w.x, w.y);
-    S.pendingTextPos = target;
-    cancelTextPlacement();
+    S.pendingTextPos = { x: target.x, y: target.y };
+    // Solo ocultamos el chip y salimos de "placing", pero conservamos pendingTextPos
+    leaveTextPlacing();
+    render();
     openTextModal({ edit: false });
     return;
   }
 
-  // 1. Botones flotantes del segmento seleccionado
   const rects = getEditButtonRects();
   for (const r of rects) {
     if (p.x >= r.x && p.x <= r.x + r.w &&
@@ -1768,7 +1785,6 @@ function handleTap(p) {
     }
   }
 
-  // 2. Modo choose-point
   if (S.editMode === 'choose-point' && S.selectedLineIdx >= 0) {
     const l = S.lines[S.selectedLineIdx];
     if (l) {
@@ -1790,7 +1806,6 @@ function handleTap(p) {
     return;
   }
 
-  // 3. Modo segment-selected
   if (S.editMode === 'segment-selected') {
     const idx = findSegmentAt(p.x, p.y);
     if (idx === S.selectedLineIdx) deselectSegment();
@@ -1799,7 +1814,6 @@ function handleTap(p) {
     return;
   }
 
-  // 4. Modo idle: primero textos, luego segmentos
   if (S.editMode === 'idle') {
     const ti = findTextAt(p.x, p.y);
     if (ti >= 0) {
@@ -1986,7 +2000,7 @@ function updateAngleFromPoint(sx, sy, bp) {
 }
 
 /* ============================================================
-   BLE — Bosch GLM 120 C
+   BLE
    ============================================================ */
 async function connectBLE() {
   if (S.ble.on) { disconnectBLE(); return; }
@@ -2098,14 +2112,7 @@ async function enableCompass() {
 }
 
 /* ============================================================
-   EXPORTAR DXF — con capas separadas y colores distintos
-   ------------------------------------------------------------
-   Capas:
-     MUROS    (cyan,    ACI 4)  → líneas
-     COTAS    (amarillo, ACI 2)  → cotas (líneas auxiliares + texto)
-     TEXTOS   (magenta, ACI 6)  → textos personalizados
-     VERTICES (blanco,  ACI 7)  → puntos de vértice
-     EJES     (rojo,    ACI 1)  → ejes
+   EXPORTAR DXF con capas separadas
    ============================================================ */
 async function exportDXF() {
   if (!S.lines.length && !S.texts.length) {
@@ -2117,17 +2124,14 @@ async function exportDXF() {
   const w = s => { out += s; };
   const n = v => Number.isFinite(v) ? v.toFixed(4) : '0.0000';
 
-  // ===== HEADER =====
   w('0\nSECTION\n2\nHEADER\n');
   w('9\n$ACADVER\n1\nAC1014\n');
   w('9\n$INSUNITS\n70\n6\n');
   w('9\n$MEASUREMENT\n70\n1\n');
   w('9\n$LUNITS\n70\n2\n');
   w('9\n$LUPREC\n70\n3\n');
-  w('9\n$EXTMIN\n');
-  // Bounding box aproximado
-  let mnx = 0, mny = 0, mxx = 0, mxy = 0;
-  let first = true;
+
+  let mnx = 0, mny = 0, mxx = 0, mxy = 0, first = true;
   for (const l of S.lines) {
     for (const p of [[l.x1,l.y1],[l.x2,l.y2]]) {
       if (first) { mnx = mxx = p[0]; mny = mxy = p[1]; first = false; }
@@ -2144,20 +2148,17 @@ async function exportDXF() {
       mny = Math.min(mny, t.y); mxy = Math.max(mxy, t.y);
     }
   }
+  w('9\n$EXTMIN\n');
   w(`10\n${n(mnx)}\n20\n${n(mny)}\n30\n0.0\n`);
   w('9\n$EXTMAX\n');
   w(`10\n${n(mxx)}\n20\n${n(mxy)}\n30\n0.0\n`);
   w('0\nENDSEC\n');
 
-  // ===== TABLES =====
   w('0\nSECTION\n2\nTABLES\n');
-
-  // LTYPE continuo (necesario antes de LAYER en R12)
   w('0\nTABLE\n2\nLTYPE\n70\n1\n');
   w('0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0.0\n');
   w('0\nENDTAB\n');
 
-  // LAYER con las 5 capas, cada una con su color ACI
   w('0\nTABLE\n2\nLAYER\n70\n5\n');
   for (const k of Object.keys(LAYERS)) {
     const L = LAYERS[k];
@@ -2165,18 +2166,14 @@ async function exportDXF() {
   }
   w('0\nENDTAB\n');
 
-  // STYLE
   w('0\nTABLE\n2\nSTYLE\n70\n1\n');
   w('0\nSTYLE\n2\nSTANDARD\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n0.2\n3\ntxt\n4\n\n');
   w('0\nENDTAB\n');
-
   w('0\nENDSEC\n');
 
-  // ===== ENTITIES =====
   w('0\nSECTION\n2\nENTITIES\n');
 
-  // -- Capa VERTICES (color 7 = blanco) --
-  // Puntos en cada vértice único
+  // VERTICES
   const seenV = new Set();
   const keyV = (x, y) => `${x.toFixed(4)}|${y.toFixed(4)}`;
   for (const l of S.lines) {
@@ -2194,51 +2191,41 @@ async function exportDXF() {
     }
   }
 
-  // -- Capa MUROS (color 4 = cyan) --
-  // Líneas de los segmentos
+  // MUROS
   for (const l of S.lines) {
     w('0\nLINE\n8\nMUROS\n');
     w(`10\n${n(l.x1)}\n20\n${n(l.y1)}\n30\n0.0\n`);
     w(`11\n${n(l.x2)}\n21\n${n(l.y2)}\n31\n0.0\n`);
   }
 
-  // -- Capa COTAS (color 2 = amarillo) --
-  // Cada cota = 2 líneas de extensión + 1 línea de cota + 1 texto
-  const DIM_OFFSET = 0.30;     // distancia perpendicular en metros
-  const DIM_GAP    = 0.08;     // gap entre extremo y línea de extensión
-  const DIM_TICK   = 0.10;     // media longitud del tick diagonal
-
+  // COTAS
+  const DIM_OFFSET = 0.30, DIM_GAP = 0.08, DIM_TICK = 0.10;
   for (const l of S.lines) {
     const dx = l.x2 - l.x1, dy = l.y2 - l.y1;
     const len = Math.hypot(dx, dy);
     if (len < 1e-9) continue;
-    const ux = dx / len, uy = dy / len;      // unitario a lo largo del segmento
-    const px = -uy, py = ux;                 // perpendicular (izquierda)
+    const ux = dx / len, uy = dy / len;
+    const px = -uy, py = ux;
 
-    // Extremos desplazados (línea de cota paralela)
     const a = { x: l.x1 + px * DIM_OFFSET, y: l.y1 + py * DIM_OFFSET };
     const b = { x: l.x2 + px * DIM_OFFSET, y: l.y2 + py * DIM_OFFSET };
 
-    // Línea de extensión desde p1 hasta a (con gap)
     const a1 = { x: l.x1 + px * DIM_GAP, y: l.y1 + py * DIM_GAP };
     const a2 = { x: a.x + px * DIM_GAP * .6, y: a.y + py * DIM_GAP * .6 };
     w('0\nLINE\n8\nCOTAS\n');
     w(`10\n${n(a1.x)}\n20\n${n(a1.y)}\n30\n0.0\n`);
     w(`11\n${n(a2.x)}\n21\n${n(a2.y)}\n31\n0.0\n`);
 
-    // Línea de extensión desde p2 hasta b (con gap)
     const b1 = { x: l.x2 + px * DIM_GAP, y: l.y2 + py * DIM_GAP };
     const b2 = { x: b.x + px * DIM_GAP * .6, y: b.y + py * DIM_GAP * .6 };
     w('0\nLINE\n8\nCOTAS\n');
     w(`10\n${n(b1.x)}\n20\n${n(b1.y)}\n30\n0.0\n`);
     w(`11\n${n(b2.x)}\n21\n${n(b2.y)}\n31\n0.0\n`);
 
-    // Línea de cota principal (paralela al segmento)
     w('0\nLINE\n8\nCOTAS\n');
     w(`10\n${n(a.x)}\n20\n${n(a.y)}\n30\n0.0\n`);
     w(`11\n${n(b.x)}\n21\n${n(b.y)}\n31\n0.0\n`);
 
-    // Ticks diagonales en los extremos (estilo arquitectónico)
     const tx = -ux * DIM_TICK - px * DIM_TICK * 0.5;
     const ty = -uy * DIM_TICK - py * DIM_TICK * 0.5;
     const tx2 = ux * DIM_TICK + px * DIM_TICK * 0.5;
@@ -2252,30 +2239,26 @@ async function exportDXF() {
     w(`10\n${n(b.x - tx)}\n20\n${n(b.y - ty)}\n30\n0.0\n`);
     w(`11\n${n(b.x + tx2)}\n21\n${n(b.y + ty2)}\n31\n0.0\n`);
 
-    // Texto con la distancia, rotado según el ángulo del segmento
-    // (se endereza si el ángulo queda al revés para que sea legible)
     let textAngle = l.angle;
     if (textAngle > 90 && textAngle < 270) textAngle -= 180;
 
     const mx = (a.x + b.x) / 2;
     const my = (a.y + b.y) / 2;
-    // Desplazamiento pequeño para que no pise la línea
-    const textOffset = px * 0.08;
+    const textOffsetX = px * 0.08;
     const textOffsetY = py * 0.08;
-
-    const textH = 0.18;  // altura del texto de cota
+    const textH = 0.18;
 
     w('0\nTEXT\n8\nCOTAS\n');
-    w(`10\n${n(mx + textOffset)}\n20\n${n(my + textOffsetY)}\n30\n0.0\n`);
+    w(`10\n${n(mx + textOffsetX)}\n20\n${n(my + textOffsetY)}\n30\n0.0\n`);
     w(`40\n${textH.toFixed(4)}\n`);
     w(`1\n${l.dist.toFixed(3)}m\n`);
     w(`50\n${textAngle.toFixed(2)}\n`);
     w('7\nSTANDARD\n');
     w('72\n1\n73\n2\n');
-    w(`11\n${n(mx + textOffset)}\n21\n${n(my + textOffsetY)}\n31\n0.0\n`);
+    w(`11\n${n(mx + textOffsetX)}\n21\n${n(my + textOffsetY)}\n31\n0.0\n`);
   }
 
-  // -- Capa TEXTOS (color 6 = magenta) --
+  // TEXTOS
   for (const t of S.texts) {
     w('0\nTEXT\n8\nTEXTOS\n');
     w(`10\n${n(t.x)}\n20\n${n(t.y)}\n30\n0.0\n`);
@@ -2287,8 +2270,7 @@ async function exportDXF() {
     w(`11\n${n(t.x)}\n21\n${n(t.y)}\n31\n0.0\n`);
   }
 
-  // -- Capa EJES (color 1 = rojo) --
-  // Cruz en el origen
+  // EJES
   const axLen = 0.5;
   w('0\nLINE\n8\nEJES\n');
   w(`10\n${n(-axLen)}\n20\n0.0\n30\n0.0\n`);
@@ -2299,7 +2281,6 @@ async function exportDXF() {
 
   w('0\nENDSEC\n0\nEOF\n');
 
-  // ===== Descarga / Compartir =====
   const fname = `PLANO_${new Date().toISOString().slice(0,10)}_${Date.now()%10000}.dxf`;
   const blob = new Blob([out], { type: 'application/dxf' });
 
@@ -2328,7 +2309,7 @@ async function exportDXF() {
 }
 
 /* ============================================================
-   UI — Modales, sheet, toasts
+   UI
    ============================================================ */
 let modalCb = null;
 
@@ -2344,8 +2325,10 @@ function openModal({ title, desc, def = '', type = 'text', cb }) {
 }
 
 function closeModal() {
-  ui.overlay.classList.remove('show');
   ui.modal.classList.remove('show');
+  if (!ui.textModal.classList.contains('show') && !ui.sheet.classList.contains('show')) {
+    ui.overlay.classList.remove('show');
+  }
   modalCb = null;
 }
 
@@ -2356,7 +2339,12 @@ ui.mOk.onclick = () => {
   if (cb) cb(v);
 };
 ui.mCancel.onclick = closeModal;
-ui.overlay.onclick = () => { closeModal(); closeSheet(); closeTextModal(); cancelTextPlacement(); };
+ui.overlay.onclick = () => {
+  closeModal();
+  closeTextModal();
+  closeSheet();
+  cancelTextPlacement();
+};
 ui.mInput.addEventListener('keydown', e => { if (e.key === 'Enter') ui.mOk.click(); });
 
 function openSheet() {
@@ -2365,8 +2353,9 @@ function openSheet() {
 }
 function closeSheet() {
   ui.sheet.classList.remove('show');
-  if (!ui.modal.classList.contains('show') && !ui.textModal.classList.contains('show'))
+  if (!ui.modal.classList.contains('show') && !ui.textModal.classList.contains('show')) {
     ui.overlay.classList.remove('show');
+  }
 }
 
 function toast(msg, kind = '') {
@@ -2380,9 +2369,6 @@ function toast(msg, kind = '') {
   }, 1800);
 }
 
-/* ============================================================
-   UI — Update
-   ============================================================ */
 function updateUI() {
   ui.tCoord.textContent = `${S.base.x.toFixed(2)}, ${S.base.y.toFixed(2)}`;
   ui.tDist.textContent = S.lastDist.toFixed(3);
