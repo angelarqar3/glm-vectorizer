@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#08080a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GLM CAD Pro — Muros</title>
+<title>GLM CAD Pro — Muros & Líneas</title>
 <style>
 :root{
   --bg:#08080a; --s1:#101014; --s2:#17171c; --s3:#1f1f26;
@@ -15,6 +15,7 @@
   --ac:#22d3ee; --ac-d:rgba(34,211,238,.14);
   --ok:#22c55e; --wn:#f59e0b; --dg:#ef4444;
   --pk:#f472b6; --pk-d:rgba(244,114,182,.14);
+  --vi:#a78bfa; --vi-d:rgba(167,139,250,.14);
   --r1:6px; --r2:10px; --r3:14px;
   --sh:0 8px 28px rgba(0,0,0,.55);
   --mono:"SF Mono","JetBrains Mono",Consolas,monospace;
@@ -44,7 +45,89 @@ canvas{display:block;width:100%;height:100%}
 .chip:active{transform:scale(.95)}
 .chip.on{background:var(--ac-d);border-color:rgba(34,211,238,.55);color:var(--ac)}
 .chip.warn{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.55);color:var(--wn)}
+.chip.line{background:var(--vi-d);border-color:rgba(167,139,250,.6);color:var(--vi)}
 .chip.text-mode{background:var(--pk-d);border-color:rgba(244,114,182,.65);color:var(--pk)}
+
+/* ============================================================
+   TOOLBAR INFERIOR (herramienta actual)
+   ============================================================ */
+.toolbar{
+  flex-shrink:0;
+  background:var(--s1);
+  border-top:1px solid var(--bd);
+  padding:6px 8px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  z-index:21;
+  overflow-x:auto;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.toolbar::-webkit-scrollbar{display:none}
+.tool{
+  flex-shrink:0;
+  height:44px;
+  min-width:64px;
+  background:var(--s2);
+  border:1.5px solid var(--bd);
+  border-radius:var(--r2);
+  color:var(--tx2);
+  font:700 9.5px -apple-system,system-ui,sans-serif;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  cursor:pointer;
+  transition:.15s;
+  padding:0 8px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  position:relative;
+  white-space:nowrap;
+}
+.tool:active{transform:scale(.95);background:var(--s3)}
+.tool .t-ic{font-size:15px;line-height:1}
+.tool .t-tag{font-size:8.5px;color:var(--tx3);font-weight:600;line-height:1;margin-top:1px}
+.tool.on{
+  background:var(--ac-d);border-color:var(--ac);color:var(--ac);
+}
+.tool.on .t-tag{color:rgba(34,211,238,.75)}
+.tool.line-tool.on{
+  background:var(--vi-d);border-color:var(--vi);color:var(--vi);
+}
+.tool.line-tool.on .t-tag{color:rgba(167,139,250,.75)}
+
+/* Botón de acción contextual (VANO) */
+.tool.action{
+  background:linear-gradient(180deg,rgba(245,158,11,.14),rgba(245,158,11,.05));
+  border-color:rgba(245,158,11,.5);
+  color:#fcd99a;
+}
+.tool.action:active{background:rgba(245,158,11,.22)}
+.tool.action:disabled{opacity:.32;cursor:not-allowed}
+.tool.action:not(:disabled)::after{
+  content:'';position:absolute;top:4px;right:4px;
+  width:6px;height:6px;border-radius:50%;background:#f59e0b;
+  animation:pulseDot 1.6s infinite;
+}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.3}}
+
+.tool-sep{
+  flex-shrink:0;width:1px;height:32px;background:var(--bd2);margin:0 2px;
+}
+
+/* Divider implícito: la barra respira entre grupos */
+.toolbar .hint{
+  flex-shrink:0;
+  font:600 9.5px var(--mono);
+  color:var(--tx3);
+  padding:0 8px;
+  letter-spacing:.05em;
+  white-space:nowrap;
+  align-self:center;
+}
 
 .rose{position:absolute;top:10px;right:10px;width:58px;height:58px;border-radius:50%;background:rgba(16,16,20,.85);backdrop-filter:blur(12px);border:1px solid var(--bd);display:grid;place-items:center;transition:opacity .2s;pointer-events:none}
 .rose.hidden{opacity:0}
@@ -62,6 +145,7 @@ canvas{display:block;width:100%;height:100%}
 .tel-v.warn{color:var(--wn)}
 .tel-v.ok{color:var(--ok)}
 .tel-v.pk{color:var(--pk)}
+.tel-v.vi{color:var(--vi)}
 
 .dock{flex-shrink:0;height:calc(66px + env(safe-area-inset-bottom));padding:0 5px env(safe-area-inset-bottom);background:var(--s1);border-top:1px solid var(--bd);display:grid;grid-template-columns:repeat(8,1fr);align-items:center;gap:4px;z-index:20}
 .dbtn{height:50px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r2);color:var(--tx);font:600 8px -apple-system,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:.15s;letter-spacing:.01em;text-transform:uppercase;position:relative;overflow:hidden;padding:0 1px;min-width:0}
@@ -127,6 +211,18 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .modal .b-quick{background:var(--s3);color:var(--tx2);font-size:11px;font-weight:700;height:34px;letter-spacing:.04em}
 .modal button:active{transform:scale(.97)}
 
+.kind-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.kind-tile{background:var(--s1);border:1.5px solid var(--bd2);border-radius:var(--r2);padding:10px 8px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:72px}
+.kind-tile:active{background:var(--s3)}
+.kind-tile.on{background:var(--ac-d);border-color:var(--ac)}
+.kind-tile.on.line-tile{background:var(--vi-d);border-color:var(--vi)}
+.kind-tile .k-thumb{width:64px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--tx2)}
+.kind-tile.on .k-thumb{color:var(--ac)}
+.kind-tile.on.line-tile .k-thumb{color:var(--vi)}
+.kind-tile .k-label{font:700 12px var(--mono);color:var(--tx);letter-spacing:.02em}
+.kind-tile.on .k-label{color:var(--ac)}
+.kind-tile.on.line-tile .k-label{color:var(--vi)}
+
 .wall-type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
 .wall-type-tile{background:var(--s1);border:1.5px solid var(--bd2);border-radius:var(--r2);padding:10px 8px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:74px}
 .wall-type-tile:active{background:var(--s3)}
@@ -141,6 +237,11 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .align-tab:active{background:var(--s3)}
 .align-tab.on{background:var(--ac-d);border-color:var(--ac);color:var(--ac)}
 .align-tab .at-icon{font-size:15px;line-height:1;font-family:var(--mono)}
+
+.section-hidden{display:none !important}
+
+.warn-box{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:var(--r2);padding:10px 12px;margin-top:12px;font-size:12px;color:#fcd99a;display:flex;gap:8px;align-items:flex-start}
+.warn-box .warn-ic{font-size:16px;flex-shrink:0;line-height:1.2}
 
 .sheet{position:fixed;left:0;right:0;bottom:0;max-height:80vh;background:var(--s1);border-top:1px solid var(--bd2);border-radius:var(--r3) var(--r3) 0 0;box-shadow:var(--sh);transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.3,1);z-index:501;display:flex;flex-direction:column}
 .sheet.show{transform:translateY(0)}
@@ -164,6 +265,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .toast.warn{border-color:rgba(245,158,11,.55);color:#fcd99a}
 .toast.err{border-color:rgba(239,68,68,.55);color:#fca5a5}
 .toast.pk{border-color:rgba(244,114,182,.55);color:#fbcfe8}
+.toast.vi{border-color:rgba(167,139,250,.55);color:#ddd6fe}
 @keyframes tIn{from{opacity:0;transform:translateY(10px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes tOut{to{opacity:0;transform:translateY(-8px) scale(.9)}}
 </style>
@@ -206,9 +308,38 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="tel-item"><span class="tel-k">DIST</span><span class="tel-v warn" id="tDist">0.000</span><span class="tel-k">m</span></div>
   <div class="tel-item"><span class="tel-k">RUM</span><span class="tel-v" id="tAng">090°</span></div>
   <div class="tel-item"><span class="tel-k">MUR</span><span class="tel-v ok" id="tSeg">0</span></div>
+  <div class="tel-item"><span class="tel-k">LÍN</span><span class="tel-v vi" id="tLines">0</span></div>
   <div class="tel-item"><span class="tel-k">VAN</span><span class="tel-v" id="tVanos" style="color:var(--wn)">0</span></div>
   <div class="tel-item"><span class="tel-k">TXT</span><span class="tel-v pk" id="tTxt">0</span></div>
   <div class="tel-item"><span class="tel-k">ZOOM</span><span class="tel-v" id="tZoom">50</span><span class="tel-k">px/m</span></div>
+</div>
+
+<!-- ============================================================
+     TOOLBAR: tipo de segmento actual + acción vano
+     ============================================================ -->
+<div class="toolbar" id="toolbar">
+  <button class="tool" id="toolWall" data-kind="wall" title="Muro">
+    <span class="t-ic">🧱</span>
+    <span>MURO</span>
+    <span class="t-tag" id="toolWallTag">21 cm</span>
+  </button>
+  <button class="tool line-tool" id="toolLine" data-kind="line" title="Línea">
+    <span class="t-ic">─</span>
+    <span>LÍNEA</span>
+    <span class="t-tag">SIMPLE</span>
+  </button>
+  <button class="tool" id="toolType" title="Cambiar tipo de muro (espesor)">
+    <span class="t-ic">⇹</span>
+    <span>TIPO</span>
+    <span class="t-tag" id="toolTypeTag">21 cm</span>
+  </button>
+  <div class="tool-sep"></div>
+  <button class="tool action" id="toolVano" disabled title="Crear vano en el segmento seleccionado">
+    <span class="t-ic">🚪</span>
+    <span>CREAR VANO</span>
+    <span class="t-tag" id="toolVanoTag">Selecciona un muro</span>
+  </button>
+  <span class="hint" id="toolHint">Toca un segmento para acciones</span>
 </div>
 
 <div class="keypad" id="keypad">
@@ -272,19 +403,36 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 </div>
 
 <div class="modal" id="wallModal">
-  <h3 id="wmTitle">Propiedades del muro</h3><p id="wmDesc">—</p>
-  <label class="field-label">Tipo de muro</label>
-  <div class="wall-type-grid" id="wmTypeGrid">
-    <div class="wall-type-tile" data-type-id="muro-10"><div class="wt-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="10" width="56" height="4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="wt-label">10 cm</div></div>
-    <div class="wall-type-tile" data-type-id="muro-12"><div class="wt-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="9.5" width="56" height="5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="wt-label">12 cm</div></div>
-    <div class="wall-type-tile" data-type-id="muro-20"><div class="wt-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="8" width="56" height="8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="wt-label">20 cm</div></div>
-    <div class="wall-type-tile" data-type-id="muro-21"><div class="wt-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="7.5" width="56" height="9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="wt-label">21 cm</div></div>
+  <h3 id="wmTitle">Propiedades del segmento</h3><p id="wmDesc">—</p>
+  <label class="field-label">Tipo de segmento</label>
+  <div class="kind-tabs" id="wmKindTabs">
+    <div class="kind-tile" data-kind="line">
+      <div class="k-thumb"><svg viewBox="0 0 64 24"><line x1="4" y1="12" x2="60" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="4" cy="12" r="2" fill="currentColor"/><circle cx="60" cy="12" r="2" fill="currentColor"/></svg></div>
+      <div class="k-label">─ Línea</div>
+    </div>
+    <div class="kind-tile" data-kind="wall">
+      <div class="k-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="7.5" width="56" height="9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+      <div class="k-label">🧱 Muro</div>
+    </div>
   </div>
-  <label class="field-label">Alineación del eje</label>
-  <div class="align-tabs" id="wmAlignTabs">
-    <button class="align-tab" data-align="interior"><span class="at-icon">⊢</span><span>Interior</span></button>
-    <button class="align-tab" data-align="center"><span class="at-icon">⋮</span><span>Centro</span></button>
-    <button class="align-tab" data-align="exterior"><span class="at-icon">⊣</span><span>Exterior</span></button>
+  <div id="wallSections">
+    <label class="field-label">Tipo de muro</label>
+    <div class="wall-type-grid" id="wmTypeGrid">
+      <div class="wall-type-tile" data-type-id="muro-10"><div class="wt-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="10" width="56" height="4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="wt-label">10 cm</div></div>
+      <div class="wall-type-tile" data-type-id="muro-12"><div class="wt-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="9.5" width="56" height="5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="wt-label">12 cm</div></div>
+      <div class="wall-type-tile" data-type-id="muro-20"><div class="wt-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="8" width="56" height="8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="wt-label">20 cm</div></div>
+      <div class="wall-type-tile" data-type-id="muro-21"><div class="wt-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="7.5" width="56" height="9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="wt-label">21 cm</div></div>
+    </div>
+    <label class="field-label">Alineación del eje</label>
+    <div class="align-tabs" id="wmAlignTabs">
+      <button class="align-tab" data-align="interior"><span class="at-icon">⊢</span><span>Interior</span></button>
+      <button class="align-tab" data-align="center"><span class="at-icon">⋮</span><span>Centro</span></button>
+      <button class="align-tab" data-align="exterior"><span class="at-icon">⊣</span><span>Exterior</span></button>
+    </div>
+  </div>
+  <div class="warn-box section-hidden" id="wmWarnVanos">
+    <span class="warn-ic">⚠</span>
+    <span id="wmWarnTxt">Al convertir a línea se eliminarán los vanos.</span>
   </div>
   <div class="row"><button class="b-cancel" id="wmCancel">Cancelar</button><button class="b-ok" id="wmOk">Aplicar</button></div>
 </div>
@@ -297,11 +445,11 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
     <div class="opt" id="optBLE"><div class="opt-l"><div class="opt-ic">📡</div><div><div>Bosch GLM 120 C</div><div class="opt-sub" id="bleSub">Sin conectar</div></div></div><div class="opt-r" id="bleState">—</div></div>
     <h4>Sensores</h4>
     <div class="opt" id="optCompass"><div class="opt-l"><div class="opt-ic">🧭</div><div>Brújula</div></div><div class="opt-val" id="compState">OFF</div></div>
-    <h4>Muros</h4>
-    <div class="opt" id="optDefaultWallType"><div class="opt-l"><div class="opt-ic">🧱</div><div><div>Tipo por defecto</div><div class="opt-sub">Para nuevos muros</div></div></div><div class="opt-val" id="defWallTypeVal">21 cm</div></div>
-    <div class="opt" id="optDefaultAlign"><div class="opt-l"><div class="opt-ic">⇹</div><div><div>Alineación por defecto</div><div class="opt-sub" id="defAlignSub">Eje en el centro</div></div></div><div class="opt-val" id="defAlignVal">Centro</div></div>
-    <div class="opt" id="optDefaultVano"><div class="opt-l"><div class="opt-ic">🚪</div><div><div>Ancho vano por defecto</div><div class="opt-sub">Puerta / ventana</div></div></div><div class="opt-val" id="defVanoVal">0.90 m</div></div>
     <h4>Dibujo</h4>
+    <div class="opt" id="optDefaultWallType"><div class="opt-l"><div class="opt-ic">⇹</div><div><div>Tipo de muro por defecto</div><div class="opt-sub">Para muros nuevos</div></div></div><div class="opt-val" id="defWallTypeVal">21 cm</div></div>
+    <div class="opt" id="optDefaultAlign"><div class="opt-l"><div class="opt-ic">⊢</div><div><div>Alineación por defecto</div><div class="opt-sub" id="defAlignSub">Eje en el centro</div></div></div><div class="opt-val" id="defAlignVal">Centro</div></div>
+    <div class="opt" id="optDefaultVano"><div class="opt-l"><div class="opt-ic">🚪</div><div><div>Ancho vano por defecto</div><div class="opt-sub">Puerta / ventana</div></div></div><div class="opt-val" id="defVanoVal">0.90 m</div></div>
+    <h4>Dibujo (precisión)</h4>
     <div class="opt" id="optSnap"><div class="opt-l"><div class="opt-ic">∠</div><div><div>Modo snap</div><div class="opt-sub" id="snapSub">Ortogonal 90°</div></div></div><div class="opt-val" id="snapVal">ORTO</div></div>
     <div class="opt" id="optGrid"><div class="opt-l"><div class="opt-ic">▦</div><div>Cuadrícula</div></div><div class="opt-val" id="gridVal">ON</div></div>
     <div class="opt" id="optDims"><div class="opt-l"><div class="opt-ic">📐</div><div><div>Cotas en pantalla</div><div class="opt-sub" id="dimsSub">Auto</div></div></div><div class="opt-val" id="dimsVal">AUTO</div></div>
@@ -312,7 +460,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
     <div class="opt" id="optExtents"><div class="opt-l"><div class="opt-ic">⛶</div><div>Centrar en dibujo</div></div><div class="opt-r">›</div></div>
     <div class="opt" id="optReset"><div class="opt-l"><div class="opt-ic">↺</div><div>Resetear zoom</div></div><div class="opt-r">›</div></div>
     <h4>Exportar</h4>
-    <div class="opt" id="optDxf"><div class="opt-l"><div class="opt-ic">⬇</div><div><div>Guardar DXF</div><div class="opt-sub" id="dxfSub">0 muros · 0 textos</div></div></div><div class="opt-r">›</div></div>
+    <div class="opt" id="optDxf"><div class="opt-l"><div class="opt-ic">⬇</div><div><div>Guardar DXF</div><div class="opt-sub" id="dxfSub">0 muros · 0 líneas</div></div></div><div class="opt-r">›</div></div>
     <h4>Zona peligrosa</h4>
     <div class="opt danger" id="optClear"><div class="opt-l"><div class="opt-ic">🗑</div><div>Borrar todo el dibujo</div></div><div class="opt-r">›</div></div>
   </div>
@@ -322,7 +470,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 
 <script>
 /* ============================================================
-   GLM CAD Pro v5 — Muros subdivididos en segmentos editables
+   GLM CAD Pro v7 — Toolbar de tipo + acción vano
    ============================================================ */
 
 const SERVICE_DATA = "02A6C0D0-0451-4000-B000-FB3210111989";
@@ -338,6 +486,7 @@ const TEXT_DRAG_THRESHOLD = 6;
 const DXFExporter = (() => {
   const DEFAULT_LAYERS = {
     MUROS:    { name: 'MUROS',    aci: 4 },
+    LINEAS:   { name: 'LINEAS',   aci: 3 },
     VANOS:    { name: 'VANOS',    aci: 1 },
     COTAS:    { name: 'COTAS',    aci: 2 },
     TEXTOS:   { name: 'TEXTOS',   aci: 6 },
@@ -346,24 +495,21 @@ const DXFExporter = (() => {
   };
   const DEFAULT_FONTS = { mono: 'consolas.ttf', sans: 'arial.ttf' };
   const DEFAULTS = {
-    version: 'AC1009',
-    dimTextH: 0.18,
-    dimOffset: 0.30,
-    axisLen: 0.50,
-    extMargin: 0.50,
-    layers: null, fonts: null,
-    toastFn: null, onDownload: null,
-    fallbackWallThickness: 0.21,
-    wallTypes: null,
+    version: 'AC1009', dimTextH: 0.18, dimOffset: 0.30,
+    axisLen: 0.50, extMargin: 0.50, layers: null, fonts: null,
+    toastFn: null, onDownload: null, fallbackWallThickness: 0.21, wallTypes: null,
   };
   const n4 = v => Number.isFinite(v) ? v.toFixed(4) : '0.0000';
   function sanitizeText(s) { return String(s || '').replace(/\r?\n/g, ' ').replace(/[\x00-\x1F]/g, '').slice(0, 250); }
+  function isLine(w) { return w.kind === 'line'; }
   function getWallThickness(w, model, cfg) {
+    if (isLine(w)) return 0;
     const types = model.wallTypes || cfg.wallTypes;
     if (types) { const t = types[w.typeId]; if (t && Number.isFinite(t.thickness)) return t.thickness; }
     return cfg.fallbackWallThickness;
   }
   function getFaceOffsets(w, model, cfg) {
+    if (isLine(w)) return { o1: 0, o2: 0 };
     const t = getWallThickness(w, model, cfg);
     const a = w.alignment || 'center';
     if (a === 'interior') return { o1: 0, o2: t };
@@ -413,7 +559,7 @@ const DXFExporter = (() => {
   function writeEntities(w, model, cfg, layers) {
     w('0\nSECTION\n2\nENTITIES\n');
     _writeVertices(w, model, layers, cfg);
-    _writeWalls(w, model, layers, cfg);
+    _writeSegments(w, model, layers, cfg);
     _writeDimensions(w, model, cfg, layers);
     _writeUserTexts(w, model, layers);
     _writeAxes(w, cfg, layers);
@@ -424,6 +570,13 @@ const DXFExporter = (() => {
     const key = (x, y) => `${x.toFixed(4)}|${y.toFixed(4)}`;
     const L = layers.VERTICES.name;
     for (const wl of model.walls || []) {
+      if (isLine(wl)) {
+        for (const p of [[wl.x1, wl.y1], [wl.x2, wl.y2]]) {
+          const k = key(p[0], p[1]);
+          if (!seen.has(k)) { seen.add(k); w(`0\nPOINT\n8\n${L}\n10\n${n4(p[0])}\n20\n${n4(p[1])}\n30\n0.0\n`); }
+        }
+        continue;
+      }
       const { o1, o2 } = getFaceOffsets(wl, model, cfg);
       for (const d of [0, wl.dist]) for (const o of [o1, o2]) {
         const p = wallPointAt(wl, d, o);
@@ -432,10 +585,15 @@ const DXFExporter = (() => {
       }
     }
   }
-  function _writeWalls(w, model, layers, cfg) {
+  function _writeSegments(w, model, layers, cfg) {
     const LM = layers.MUROS.name;
+    const LL = layers.LINEAS.name;
     const LV = layers.VANOS.name;
     for (const wl of model.walls || []) {
+      if (isLine(wl)) {
+        w(`0\nLINE\n8\n${LL}\n10\n${n4(wl.x1)}\n20\n${n4(wl.y1)}\n30\n0.0\n11\n${n4(wl.x2)}\n21\n${n4(wl.y2)}\n31\n0.0\n`);
+        continue;
+      }
       const { o1, o2 } = getFaceOffsets(wl, model, cfg);
       const vanos = (wl.vanos || []).slice().sort((a, b) => a.d1 - b.d1);
       for (const o of [o1, o2]) {
@@ -496,7 +654,7 @@ const DXFExporter = (() => {
     if (typeof cfg.onDownload === 'function') { await cfg.onDownload(blob, fname); toastFn('DXF exportado', 'ok'); return { ok: true, fname }; }
     try {
       const file = new File([blob], fname, { type: 'application/dxf' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Levantamiento DXF', text: `${model.walls?.length || 0} muros` }); toastFn('DXF compartido', 'ok'); return { ok: true, fname }; }
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Levantamiento DXF', text: `${model.walls?.length || 0} segmentos` }); toastFn('DXF compartido', 'ok'); return { ok: true, fname }; }
     } catch (e) { if (e.name === 'AbortError') return { ok: false, reason: 'aborted' }; }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = fname;
@@ -510,7 +668,7 @@ const DXFExporter = (() => {
 })();
 
 /* ============================================================
-   ▶ ESTADO PRINCIPAL
+   ▶ ESTADO
    ============================================================ */
 const DEFAULT_WALL_TYPES = {
   'muro-10': { id: 'muro-10', name: '10 cm', thickness: 0.10 },
@@ -526,7 +684,7 @@ const ALIGN_DESC = {
 };
 
 const S = {
-  lines: [],               // muros (con vanos[])
+  lines: [],
   texts: [],
   redoStack: [],
   base: { x: 0, y: 0 },
@@ -547,30 +705,26 @@ const S = {
   polylineStart: 0,
   newPolylineOnPick: false,
   lineTapPx: 22,
-  // SELECCIÓN de pieza (segmento)
   selWallIdx: -1,
   selPieceIdx: -1,
-  editMode: 'idle',       // 'idle' | 'piece-selected' | 'choose-point' | 'moving'
-  movingEnd: null,        // 'start' | 'end' (del piece)
-  // Texto
+  editMode: 'idle',
+  movingEnd: null,
   textMode: 'idle', pendingTextPos: null, editingTextIdx: -1, defaultTextSize: 0.25,
   draggingText: null, textDragMoved: false, textDragStart: null,
   dimMinScreenLen: 55,
-  // Muros
   wallTypes: { ...DEFAULT_WALL_TYPES },
   currentWallTypeId: 'muro-21',
   currentAlignment: 'center',
+  currentSegmentKind: 'wall',
   defaultVanoWidth: 0.90,
-  // Modales
   vanoTargetWallIdx: -1, vanoTargetPieceIdx: -1, editingVanoIdx: -1,
-  editingWallIdx: -1, tempWallTypeId: null, tempAlignment: null,
+  editingWallIdx: -1, tempWallTypeId: null, tempAlignment: null, tempKind: null,
 };
 const INIT_SCALE = 50;
 const DIAL_R = 56;
 const VERTEX_R = 3;
 
 let hitTargets = [];
-
 const kp = { visible: false, pinned: false, mode: 'dist', value: '', editIdx: -1 };
 
 const $ = id => document.getElementById(id);
@@ -581,7 +735,7 @@ const ui = {
   chipOrtho: $('chipOrtho'), chipSnap: $('chipSnap'), chipDims: $('chipDims'), chipText: $('chipText'),
   rose: $('rose'), needle: $('needle'), scalebar: $('scalebar'),
   tCoord: $('tCoord'), tDist: $('tDist'), tAng: $('tAng'), tSeg: $('tSeg'),
-  tVanos: $('tVanos'), tTxt: $('tTxt'), tZoom: $('tZoom'),
+  tLines: $('tLines'), tVanos: $('tVanos'), tTxt: $('tTxt'), tZoom: $('tZoom'),
   bUndo: $('bUndo'), bRedo: $('bRedo'), bAngle: $('bAngle'), bDist: $('bDist'),
   bText: $('bText'), bBase: $('bBase'), bClose: $('bClose'), bTerminar: $('bTerminar'),
   overlay: $('overlay'), modal: $('modal'), mTitle: $('mTitle'), mDesc: $('mDesc'),
@@ -593,7 +747,8 @@ const ui = {
   vmQuickStart: $('vmQuickStart'), vmQuickCenter: $('vmQuickCenter'), vmQuickEnd: $('vmQuickEnd'),
   vmCancel: $('vmCancel'), vmDelete: $('vmDelete'), vmOk: $('vmOk'),
   wallModal: $('wallModal'), wmTitle: $('wmTitle'), wmDesc: $('wmDesc'),
-  wmTypeGrid: $('wmTypeGrid'), wmAlignTabs: $('wmAlignTabs'),
+  wmKindTabs: $('wmKindTabs'), wmTypeGrid: $('wmTypeGrid'), wmAlignTabs: $('wmAlignTabs'),
+  wmSections: $('wallSections'), wmWarnVanos: $('wmWarnVanos'), wmWarnTxt: $('wmWarnTxt'),
   wmCancel: $('wmCancel'), wmOk: $('wmOk'),
   sheet: $('sheet'), toasts: $('toasts'),
   optBLE: $('optBLE'), bleSub: $('bleSub'), bleState: $('bleState'),
@@ -612,6 +767,10 @@ const ui = {
   keypad: $('keypad'), kpTag: $('kpTag'), kpDisplay: $('kpDisplay'),
   kpInput: $('kpInput'), kpUnit: $('kpUnit'), kpPin: $('kpPin'), kpClose: $('kpClose'),
   btnKpToggle: $('btnKpToggle'),
+  // Toolbar
+  toolWall: $('toolWall'), toolLine: $('toolLine'), toolType: $('toolType'),
+  toolVano: $('toolVano'), toolWallTag: $('toolWallTag'),
+  toolTypeTag: $('toolTypeTag'), toolVanoTag: $('toolVanoTag'), toolHint: $('toolHint'),
 };
 
 /* ============================================================
@@ -621,11 +780,13 @@ function w2s(wx, wy) { return { x: S.view.x + wx * S.view.s, y: S.view.y - wy * 
 function s2w(sx, sy) { return { x: (sx - S.view.x) / S.view.s, y: -(sy - S.view.y) / S.view.s }; }
 
 /* ============================================================
-   MUROS — helpers
+   MUROS / LÍNEAS — helpers
    ============================================================ */
+function isLine(w) { return w.kind === 'line'; }
 function getWallType(w) { return S.wallTypes[w.typeId] || S.wallTypes['muro-21']; }
-function getWallThickness(w) { return getWallType(w).thickness; }
+function getWallThickness(w) { return isLine(w) ? 0 : getWallType(w).thickness; }
 function getWallFaceOffsets(w) {
+  if (isLine(w)) return { o1: 0, o2: 0 };
   const t = getWallThickness(w);
   if (w.alignment === 'interior') return { o1: 0, o2: t };
   if (w.alignment === 'exterior') return { o1: -t, o2: 0 };
@@ -637,8 +798,6 @@ function wallPointWorld(w, d, o) {
   const nx = -uy, ny = ux;
   return { x: w.x1 + ux * d + nx * o, y: w.y1 + uy * d + ny * o };
 }
-
-/* Piezas del muro: tramos entre vanos. */
 function getWallPieces(w) {
   const vanos = (w.vanos || []).slice().sort((a, b) => a.d1 - b.d1);
   const pieces = [];
@@ -650,7 +809,6 @@ function getWallPieces(w) {
   if (cursor < w.dist - 1e-6) pieces.push({ t1: cursor, t2: w.dist });
   return pieces;
 }
-
 function getPieceCenterScreen(w, piece) {
   const fo = getWallFaceOffsets(w);
   const mo = (fo.o1 + fo.o2) / 2;
@@ -671,14 +829,12 @@ function pointToSegmentDist(px, py, x1, y1, x2, y2) {
   const cx = x1 + t * vx, cy = y1 + t * vy;
   return Math.hypot(px - cx, py - cy);
 }
-
-/* Devuelve la pieza o vano bajo el tap. */
 function findWallPieceAt(sx, sy) {
   let best = null, bestAbsPerp = Infinity;
   for (let i = 0; i < S.lines.length; i++) {
     const w = S.lines[i];
     const t = getWallThickness(w);
-    const th = t * S.view.s / 2 + 8;
+    const th = (isLine(w) ? 0 : t * S.view.s / 2) + 10;
     const p1 = w2s(w.x1, w.y1);
     const p2 = w2s(w.x2, w.y2);
     const dx = p2.x - p1.x, dy = p2.y - p1.y;
@@ -691,17 +847,21 @@ function findWallPieceAt(sx, sy) {
     if (Math.abs(tP) > th) continue;
     const tM = tS / S.view.s;
     if (tM < -0.05 || tM > w.dist + 0.05) continue;
-
+    if (isLine(w)) {
+      if (Math.abs(tP) < bestAbsPerp) {
+        best = { wallIdx: i, pieceIdx: 0, vanoIdx: -1, inVano: false };
+        bestAbsPerp = Math.abs(tP);
+      }
+      continue;
+    }
     const vanos = (w.vanos || []).slice().sort((a, b) => a.d1 - b.d1);
     let inVano = false, vanoIdx = -1;
     for (let j = 0; j < vanos.length; j++) {
       if (tM >= vanos[j].d1 - 1e-6 && tM <= vanos[j].d2 + 1e-6) { inVano = true; vanoIdx = j; break; }
     }
-
     if (Math.abs(tP) < bestAbsPerp) {
-      if (inVano) {
-        best = { wallIdx: i, pieceIdx: -1, vanoIdx, inVano: true };
-      } else {
+      if (inVano) { best = { wallIdx: i, pieceIdx: -1, vanoIdx, inVano: true }; }
+      else {
         const pieces = getWallPieces(w);
         let pieceIdx = -1;
         for (let k = 0; k < pieces.length; k++) {
@@ -714,7 +874,6 @@ function findWallPieceAt(sx, sy) {
   }
   return best;
 }
-
 function getTextBounds(t) {
   const p = w2s(t.x, t.y);
   const fontPx = Math.max(8, t.size * S.view.s);
@@ -771,7 +930,7 @@ function wallHasVanoOverlap(wall, d1, d2, ignoreIdx = -1) {
   return false;
 }
 function addVanoToWall(wallIdx, d1, width) {
-  const w = S.lines[wallIdx]; if (!w) return false;
+  const w = S.lines[wallIdx]; if (!w || isLine(w)) return false;
   const W = Math.max(0.05, width);
   let start = Math.max(0, Math.min(d1, w.dist - 0.05));
   let end = Math.min(w.dist, start + W);
@@ -791,7 +950,7 @@ function deleteVano(wallIdx, vanoIdx) {
 }
 
 /* ============================================================
-   EDICIÓN DE PIEZAS
+   EDICIÓN DE SEGMENTOS
    ============================================================ */
 function recomputeWallMetrics(idx, oldDist = null) {
   const l = S.lines[idx]; if (!l) return;
@@ -807,8 +966,6 @@ function recomputeWallMetrics(idx, oldDist = null) {
     }
   }
 }
-
-/* Editar la longitud de una pieza concreta. */
 function editPieceDistance(wallIdx, pieceIdx, newSignedDist, movingEnd) {
   const w = S.lines[wallIdx]; if (!w) return;
   const pieces = getWallPieces(w);
@@ -816,25 +973,20 @@ function editPieceDistance(wallIdx, pieceIdx, newSignedDist, movingEnd) {
   if (!piece) return;
   const newDist = Math.abs(newSignedDist);
   if (newDist < 0.02) { toast('Mínimo 2 cm', 'err'); return; }
-
-  const vanos = (w.vanos || []).slice().sort((a, b) => a.d1 - b.d1);
-
   if (movingEnd === 'start') {
     const newT1 = piece.t2 - newDist;
     if (piece.t1 < 1e-6) {
-      // Mover el inicio del muro
       const delta = newT1 - piece.t1;
-      if (w.dist - delta < 0.05) { toast('Muro muy corto', 'err'); return; }
+      if (w.dist - delta < 0.05) { toast('Muy corto', 'err'); return; }
       const rad = w.angle * Math.PI / 180;
       const cosA = Math.cos(rad), sinA = Math.sin(rad);
-      w.x1 += delta * cosA;
-      w.y1 += delta * sinA;
+      w.x1 += delta * cosA; w.y1 += delta * sinA;
       w.dist -= delta;
-      for (const v of w.vanos) { v.d1 -= delta; v.d2 -= delta; }
+      if (w.vanos) for (const v of w.vanos) { v.d1 -= delta; v.d2 -= delta; }
     } else {
       const leftV = w.vanos.find(v => Math.abs(v.d2 - piece.t1) < 1e-6);
       if (!leftV) return;
-      if (newT1 - leftV.d1 < 0.05) { toast('El vano quedaría muy estrecho', 'err'); return; }
+      if (newT1 - leftV.d1 < 0.05) { toast('Vano muy estrecho', 'err'); return; }
       if (newT1 > piece.t2 - 0.02) { toast('Pieza muy corta', 'err'); return; }
       leftV.d2 = newT1;
     }
@@ -842,62 +994,47 @@ function editPieceDistance(wallIdx, pieceIdx, newSignedDist, movingEnd) {
     const newT2 = piece.t1 + newDist;
     if (piece.t2 >= w.dist - 1e-6) {
       const delta = newT2 - piece.t2;
-      if (w.dist + delta < 0.05) { toast('Muro muy corto', 'err'); return; }
+      if (w.dist + delta < 0.05) { toast('Muy corto', 'err'); return; }
       const rad = w.angle * Math.PI / 180;
       const cosA = Math.cos(rad), sinA = Math.sin(rad);
-      w.x2 += delta * cosA;
-      w.y2 += delta * sinA;
+      w.x2 += delta * cosA; w.y2 += delta * sinA;
       w.dist += delta;
     } else {
       const rightV = w.vanos.find(v => Math.abs(v.d1 - piece.t2) < 1e-6);
       if (!rightV) return;
-      if (rightV.d2 - newT2 < 0.05) { toast('El vano quedaría muy estrecho', 'err'); return; }
+      if (rightV.d2 - newT2 < 0.05) { toast('Vano muy estrecho', 'err'); return; }
       if (newT2 < piece.t1 + 0.02) { toast('Pieza muy corta', 'err'); return; }
       rightV.d1 = newT2;
     }
   }
-
   S.redoStack.length = 0;
   updateUI(); render();
   toast(`Segmento → ${newDist.toFixed(3)}m`, 'ok');
 }
-
-/* Borrar una pieza: reabsorbe el hueco en los vanos adyacentes. */
 function deletePiece(wallIdx, pieceIdx) {
   const w = S.lines[wallIdx]; if (!w) return;
+  if (isLine(w)) { deleteWall(wallIdx); return; }
   const pieces = getWallPieces(w);
   const piece = pieces[pieceIdx];
   if (!piece) return;
-
   const startsAtWallStart = piece.t1 < 1e-6;
   const endsAtWallEnd = piece.t2 >= w.dist - 1e-6;
-
-  if (startsAtWallStart && endsAtWallEnd) {
-    // La pieza es todo el muro → eliminar el muro
-    deleteWall(wallIdx);
-    return;
-  }
-
+  if (startsAtWallStart && endsAtWallEnd) { deleteWall(wallIdx); return; }
   const vanos = (w.vanos || []).slice().sort((a, b) => a.d1 - b.d1);
   const leftV = !startsAtWallStart ? vanos.find(v => Math.abs(v.d2 - piece.t1) < 1e-6) : null;
   const rightV = !endsAtWallEnd ? vanos.find(v => Math.abs(v.d1 - piece.t2) < 1e-6) : null;
-
-  if (startsAtWallStart && rightV) {
-    rightV.d1 = 0;
-  } else if (endsAtWallEnd && leftV) {
-    leftV.d2 = w.dist;
-  } else if (leftV && rightV) {
+  if (startsAtWallStart && rightV) rightV.d1 = 0;
+  else if (endsAtWallEnd && leftV) leftV.d2 = w.dist;
+  else if (leftV && rightV) {
     leftV.d2 = rightV.d2;
-    const idx = w.vanos.indexOf(rightV);
-    if (idx >= 0) w.vanos.splice(idx, 1);
+    const i = w.vanos.indexOf(rightV);
+    if (i >= 0) w.vanos.splice(i, 1);
   }
-
   S.redoStack.length = 0;
   S.selWallIdx = -1; S.selPieceIdx = -1; S.editMode = 'idle'; S.movingEnd = null;
   updateUI(); render();
   toast('Segmento eliminado', 'warn');
 }
-
 function deleteWall(idx) {
   if (idx < 0 || idx >= S.lines.length) return;
   const wasLast = (idx === S.lines.length - 1);
@@ -909,44 +1046,81 @@ function deleteWall(idx) {
   S.redoStack.length = 0;
   S.selWallIdx = -1; S.selPieceIdx = -1; S.editMode = 'idle'; S.movingEnd = null;
   updateUI(); render();
-  toast('Muro eliminado', 'warn');
+  toast('Segmento eliminado', 'warn');
 }
-
 function deselectSegment() {
   S.selWallIdx = -1; S.selPieceIdx = -1; S.editMode = 'idle'; S.movingEnd = null;
   render();
 }
 
-/* Botones flotantes para la pieza seleccionada */
-function getEditButtonRects() {
-  if (S.selWallIdx < 0 || S.selWallIdx >= S.lines.length) return [];
-  if (S.editMode !== 'piece-selected') return [];
-  const w = S.lines[S.selWallIdx];
-  const pieces = getWallPieces(w);
-  const piece = pieces[S.selPieceIdx];
-  if (!piece) return [];
+/* ============================================================
+   TOOLBAR — actualización de estado y acciones
+   ============================================================ */
+function updateToolbar() {
+  const isLineKind = S.currentSegmentKind === 'line';
+  // Marcar activo el tipo por defecto (para nuevos segmentos)
+  ui.toolWall.classList.toggle('on', !isLineKind);
+  ui.toolLine.classList.toggle('on', isLineKind);
 
-  const c = getPieceCenterScreen(w, piece);
-  ctx.font = '700 11px "SF Mono","JetBrains Mono",Consolas,monospace';
-  const btns = [
-    { label: '✎ EDITAR', action: 'edit',   color: '#22c55e' },
-    { label: '🚪 VANO',   action: 'vano',   color: '#22d3ee' },
-    { label: '🧱 TIPO',   action: 'type',   color: '#a78bfa' },
-    { label: '🗑 BORRAR', action: 'delete', color: '#ef4444' },
-  ];
-  const pad = 8, gap = 5, h = 30;
-  const sizes = btns.map(b => ctx.measureText(b.label).width + pad * 2);
-  const totalW = sizes.reduce((s, v) => s + v, 0) + gap * (btns.length - 1);
-  const x0 = c.x - totalW / 2;
-  const y = c.y - 58;
-  const rects = [];
-  let x = x0;
-  btns.forEach((b, i) => {
-    rects.push({ x, y, w: sizes[i], h, action: b.action, label: b.label, color: b.color });
-    x += sizes[i] + gap;
-  });
-  return rects;
+  // Tag de espesor del muro actual
+  const curType = S.wallTypes[S.currentWallTypeId];
+  if (curType) ui.toolWallTag.textContent = curType.name;
+  if (curType) ui.toolTypeTag.textContent = curType.name;
+
+  // Vano: solo habilitado cuando hay un MURO seleccionado
+  const w = S.selWallIdx >= 0 ? S.lines[S.selWallIdx] : null;
+  const isWallSel = w && !isLine(w);
+  ui.toolVano.disabled = !isWallSel;
+  if (isWallSel) {
+    const vanoCount = (w.vanos || []).length;
+    ui.toolVanoTag.textContent = vanoCount > 0 ? `${vanoCount} vano(s)` : 'Añadir';
+  } else if (w && isLine(w)) {
+    ui.toolVanoTag.textContent = 'Es línea';
+  } else {
+    ui.toolVanoTag.textContent = 'Selecciona un muro';
+  }
+
+  // Hint dinámico
+  if (S.textMode === 'placing') ui.toolHint.textContent = '✎ toca el lienzo';
+  else if (S.picking) ui.toolHint.textContent = '📍 coloca el puntero';
+  else if (w && isWallSel) ui.toolHint.textContent = `Muro ${w.dist.toFixed(2)} m seleccionado`;
+  else if (w && isLine(w)) ui.toolHint.textContent = `Línea ${w.dist.toFixed(2)} m seleccionada`;
+  else ui.toolHint.textContent = 'Toca un segmento para acciones';
 }
+
+ui.toolWall.onclick = () => {
+  S.currentSegmentKind = 'wall';
+  updateUI();
+  toast('Nuevos segmentos: MURO', 'ok');
+};
+ui.toolLine.onclick = () => {
+  S.currentSegmentKind = 'line';
+  updateUI();
+  toast('Nuevos segmentos: LÍNEA', 'vi');
+};
+ui.toolType.onclick = () => {
+  // Abre el modal en modo "defaults" para cambiar el tipo por defecto del muro actual
+  S.tempKind = 'wall';
+  S.tempWallTypeId = S.currentWallTypeId;
+  S.tempAlignment = S.currentAlignment;
+  S.editingWallIdx = -2;
+  updateKindTiles(); updateWallTypeTiles(); updateAlignTabs();
+  updateSectionsVisibility();
+  ui.wmTitle.textContent = 'Tipo de muro por defecto';
+  ui.wmDesc.textContent = 'Para los nuevos muros que dibujes';
+  ui.wmWarnVanos.classList.add('section-hidden');
+  ui.wmOk.dataset.mode = 'defaults';
+  ui.overlay.classList.add('show'); ui.wallModal.classList.add('show');
+};
+ui.toolVano.onclick = () => {
+  const w = S.selWallIdx >= 0 ? S.lines[S.selWallIdx] : null;
+  if (!w || isLine(w)) {
+    toast('Selecciona un muro primero', 'warn');
+    return;
+  }
+  const pieceIdx = S.selPieceIdx >= 0 ? S.selPieceIdx : -1;
+  openVanoModal(S.selWallIdx, -1, pieceIdx);
+};
 
 /* ============================================================
    TEXTO
@@ -957,9 +1131,10 @@ function startTextPlacement() {
   if (S.picking) { S.picking = false; S.pickSnap = null; ui.bBase.classList.remove('armed'); }
   S.textMode = 'placing'; S.pendingTextPos = null;
   ui.chipText.style.display = 'flex'; ui.bText.classList.add('pink-armed');
+  updateUI();
   toast('Toca el lienzo para ubicar el texto', 'pk'); render();
 }
-function leaveTextPlacing() { S.textMode = 'idle'; ui.chipText.style.display = 'none'; ui.bText.classList.remove('pink-armed'); }
+function leaveTextPlacing() { S.textMode = 'idle'; ui.chipText.style.display = 'none'; ui.bText.classList.remove('pink-armed'); updateUI(); }
 function cancelTextPlacement() { S.pendingTextPos = null; leaveTextPlacing(); render(); }
 function cancelTextModalOnly() { ui.textModal.classList.remove('show'); maybeCloseOverlay(); S.editingTextIdx = -1; }
 function maybeCloseOverlay() {
@@ -1023,12 +1198,17 @@ function kpOpen(mode, editIdx = -1) {
     const p = pieces[S.selPieceIdx];
     const endLabel = S.movingEnd === 'start' ? 'A' : 'B';
     const segLen = p ? (p.t2 - p.t1) : 0;
-    ui.kpTag.textContent = `SEG ${S.selPieceIdx + 1} · PTO ${endLabel}`;
+    const kindLabel = w ? (isLine(w) ? 'LÍN' : 'MURO') : 'SEG';
+    ui.kpTag.textContent = `${kindLabel} ${S.selPieceIdx + 1} · PTO ${endLabel}`;
     ui.kpTag.className = 'kp-tag edit'; ui.kpUnit.textContent = 'm';
     kp.value = segLen.toFixed(3); ui.kpInput.value = kp.value;
     ui.keypad.classList.add('edit'); ui.kpDisplay.classList.add('edit');
   } else {
-    ui.kpTag.textContent = 'DISTANCIA'; ui.kpTag.className = 'kp-tag dist'; ui.kpUnit.textContent = 'm'; kpClearInput();
+    const kindLabel = S.currentSegmentKind === 'line' ? 'LÍNEA' : 'MURO';
+    ui.kpTag.textContent = kindLabel;
+    ui.kpTag.className = 'kp-tag dist';
+    ui.kpUnit.textContent = 'm';
+    kpClearInput();
   }
   ui.keypad.classList.add('show');
   document.body.classList.add('kp-open');
@@ -1087,15 +1267,14 @@ document.addEventListener('keydown', e => {
 });
 
 /* ============================================================
-   MODAL VANOS (restringido a la pieza)
+   MODAL VANOS
    ============================================================ */
 function openVanoModal(wallIdx, vanoIdx = -1, pieceIdx = -1) {
-  const w = S.lines[wallIdx]; if (!w) return;
+  const w = S.lines[wallIdx]; if (!w || isLine(w)) return;
   S.vanoTargetWallIdx = wallIdx; S.editingVanoIdx = vanoIdx; S.vanoTargetPieceIdx = pieceIdx;
   const isEdit = vanoIdx >= 0;
   let defaultPos = 0, defaultWidth = S.defaultVanoWidth;
   let minPos = 0, maxPos = w.dist;
-
   if (isEdit && w.vanos && w.vanos[vanoIdx]) {
     const v = w.vanos[vanoIdx]; defaultPos = v.d1; defaultWidth = v.d2 - v.d1;
   } else if (pieceIdx >= 0) {
@@ -1113,11 +1292,9 @@ function openVanoModal(wallIdx, vanoIdx = -1, pieceIdx = -1) {
     if (w.dist > ww + 0.1) defaultPos = (w.dist - ww) / 2;
     else { defaultPos = 0; defaultWidth = Math.min(ww, w.dist); }
   }
-
   ui.vmTitle.textContent = isEdit ? 'Editar vano' : 'Añadir vano';
   ui.vmDesc.textContent = `Tramo ${minPos.toFixed(2)} – ${maxPos.toFixed(2)} m · ${getWallType(w).name}`;
-  ui.vmPos.value = defaultPos.toFixed(3);
-  ui.vmWidth.value = defaultWidth.toFixed(3);
+  ui.vmPos.value = defaultPos.toFixed(3); ui.vmWidth.value = defaultWidth.toFixed(3);
   ui.vmDelete.style.display = isEdit ? 'flex' : 'none';
   ui.vmOk.textContent = isEdit ? 'Aplicar' : 'Añadir';
   ui.overlay.classList.add('show'); ui.vanoModal.classList.add('show');
@@ -1143,8 +1320,7 @@ ui.vmDelete.onclick = () => {
 };
 ui.vmOk.onclick = () => {
   const idx = S.vanoTargetWallIdx, vIdx = S.editingVanoIdx;
-  const w = S.lines[idx];
-  if (!w) { closeVanoModal(); return; }
+  const w = S.lines[idx]; if (!w) { closeVanoModal(); return; }
   const pos = parseFloat((ui.vmPos.value || '0').replace(',', '.'));
   const width = parseFloat((ui.vmWidth.value || String(S.defaultVanoWidth)).replace(',', '.'));
   if (!isFinite(pos) || !isFinite(width) || width <= 0.05) { toast('Valores inválidos', 'err'); return; }
@@ -1169,25 +1345,35 @@ ui.vmPos.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDe
 ui.vmWidth.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ui.vmOk.click(); } if (e.key === 'Escape') { e.preventDefault(); ui.vmCancel.click(); } });
 
 /* ============================================================
-   MODAL TIPO DE MURO
+   MODAL PROPIEDADES
    ============================================================ */
 function openWallPropertiesModal(wallIdx) {
   const w = S.lines[wallIdx]; if (!w) return;
   S.editingWallIdx = wallIdx;
   S.tempWallTypeId = w.typeId || S.currentWallTypeId;
   S.tempAlignment = w.alignment || S.currentAlignment;
+  S.tempKind = w.kind || 'wall';
   const vanoCount = (w.vanos || []).length;
   const pieceCount = getWallPieces(w).length;
-  ui.wmTitle.textContent = 'Propiedades del muro';
-  ui.wmDesc.textContent = `${w.dist.toFixed(3)} m · ${pieceCount} segmento(s) · ${vanoCount} vano(s)`;
+  const kindLabel = isLine(w) ? 'Línea' : 'Muro';
+  ui.wmTitle.textContent = 'Propiedades del segmento';
+  ui.wmDesc.textContent = `${kindLabel} · ${w.dist.toFixed(3)} m${!isLine(w) ? ' · ' + pieceCount + ' seg' + (vanoCount ? ' · ' + vanoCount + ' vano(s)' : '') : ''}`;
   ui.wmOk.dataset.mode = '';
-  updateWallTypeTiles(); updateAlignTabs();
+  updateWallTypeTiles(); updateAlignTabs(); updateKindTiles();
+  updateSectionsVisibility();
   ui.overlay.classList.add('show'); ui.wallModal.classList.add('show');
 }
 function closeWallPropertiesModal() {
   ui.wallModal.classList.remove('show'); maybeCloseOverlay();
-  S.editingWallIdx = -1; S.tempWallTypeId = null; S.tempAlignment = null;
+  S.editingWallIdx = -1; S.tempWallTypeId = null; S.tempAlignment = null; S.tempKind = null;
   ui.wmOk.dataset.mode = '';
+}
+function updateKindTiles() {
+  ui.wmKindTabs.querySelectorAll('.kind-tile').forEach(t => {
+    const on = t.dataset.kind === S.tempKind;
+    t.classList.toggle('on', on);
+    t.classList.toggle('line-tile', on && t.dataset.kind === 'line');
+  });
 }
 function updateWallTypeTiles() {
   ui.wmTypeGrid.querySelectorAll('.wall-type-tile').forEach(t => t.classList.toggle('on', t.dataset.typeId === S.tempWallTypeId));
@@ -1195,6 +1381,24 @@ function updateWallTypeTiles() {
 function updateAlignTabs() {
   ui.wmAlignTabs.querySelectorAll('.align-tab').forEach(t => t.classList.toggle('on', t.dataset.align === S.tempAlignment));
 }
+function updateSectionsVisibility() {
+  const isWall = S.tempKind === 'wall';
+  ui.wmSections.classList.toggle('section-hidden', !isWall);
+  const w = S.editingWallIdx >= 0 ? S.lines[S.editingWallIdx] : null;
+  const hasVanos = w && w.vanos && w.vanos.length > 0;
+  const willConvertToLine = !isWall && w && !isLine(w);
+  if (hasVanos && willConvertToLine) {
+    ui.wmWarnVanos.classList.remove('section-hidden');
+    ui.wmWarnTxt.textContent = `Al convertir a línea se eliminarán ${w.vanos.length} vano(s).`;
+  } else {
+    ui.wmWarnVanos.classList.add('section-hidden');
+  }
+}
+ui.wmKindTabs.addEventListener('click', e => {
+  const tile = e.target.closest('.kind-tile'); if (!tile) return;
+  S.tempKind = tile.dataset.kind;
+  updateKindTiles(); updateSectionsVisibility();
+});
 ui.wmTypeGrid.addEventListener('click', e => {
   const tile = e.target.closest('.wall-type-tile'); if (!tile) return;
   S.tempWallTypeId = tile.dataset.typeId; updateWallTypeTiles();
@@ -1206,40 +1410,63 @@ ui.wmAlignTabs.addEventListener('click', e => {
 ui.wmCancel.onclick = () => { closeWallPropertiesModal(); };
 ui.wmOk.onclick = () => {
   if (ui.wmOk.dataset.mode === 'defaults') {
-    if (S.tempWallTypeId) S.currentWallTypeId = S.tempWallTypeId;
-    if (S.tempAlignment) S.currentAlignment = S.tempAlignment;
+    if (S.tempKind) S.currentSegmentKind = S.tempKind;
+    if (S.tempWallTypeId && S.tempKind === 'wall') S.currentWallTypeId = S.tempWallTypeId;
+    if (S.tempAlignment && S.tempKind === 'wall') S.currentAlignment = S.tempAlignment;
     closeWallPropertiesModal();
     updateUI(); render();
-    const ct = S.wallTypes[S.currentWallTypeId];
-    toast(`Nuevo por defecto: ${ct ? ct.name : ''} · ${ALIGN_LABELS[S.currentAlignment]}`, 'ok');
+    const kindLbl = S.currentSegmentKind === 'line' ? 'Línea' : 'Muro';
+    const extra = S.currentSegmentKind === 'wall' ? ` · ${S.wallTypes[S.currentWallTypeId].name} · ${ALIGN_LABELS[S.currentAlignment]}` : '';
+    toast(`Por defecto: ${kindLbl}${extra}`, 'ok');
     return;
   }
   const idx = S.editingWallIdx;
   const w = S.lines[idx];
   if (!w) { closeWallPropertiesModal(); return; }
-  const typeChanged = S.tempWallTypeId && S.tempWallTypeId !== w.typeId;
-  const alignChanged = S.tempAlignment && S.tempAlignment !== w.alignment;
-  if (typeChanged) w.typeId = S.tempWallTypeId;
-  if (alignChanged) w.alignment = S.tempAlignment;
-  if (typeChanged) S.currentWallTypeId = S.tempWallTypeId;
-  if (alignChanged) S.currentAlignment = S.tempAlignment;
-  if (typeChanged || alignChanged) {
-    S.redoStack.length = 0;
-    const msg = [];
-    if (typeChanged) msg.push(getWallType(w).name);
-    if (alignChanged) msg.push(ALIGN_LABELS[w.alignment]);
-    toast(`Muro: ${msg.join(' · ')}`, 'ok');
+  const kindChanged = S.tempKind && S.tempKind !== (w.kind || 'wall');
+  const typeChanged = S.tempKind === 'wall' && S.tempWallTypeId && S.tempWallTypeId !== w.typeId;
+  const alignChanged = S.tempKind === 'wall' && S.tempAlignment && S.tempAlignment !== w.alignment;
+  if (kindChanged) {
+    if (S.tempKind === 'line') {
+      const vanoCount = (w.vanos || []).length;
+      w.kind = 'line'; w.vanos = [];
+      if (vanoCount > 0) toast(`Convertido a línea · ${vanoCount} vano(s) eliminados`, 'vi');
+      else toast('Convertido a línea', 'vi');
+    } else {
+      w.kind = 'wall';
+      if (S.tempWallTypeId) w.typeId = S.tempWallTypeId;
+      if (S.tempAlignment) w.alignment = S.tempAlignment;
+      if (!w.vanos) w.vanos = [];
+      toast(`Convertido a muro · ${getWallType(w).name}`, 'ok');
+    }
+    S.currentSegmentKind = S.tempKind;
+    if (S.tempKind === 'wall') {
+      if (S.tempWallTypeId) S.currentWallTypeId = S.tempWallTypeId;
+      if (S.tempAlignment) S.currentAlignment = S.tempAlignment;
+    }
+  } else {
+    if (typeChanged) { w.typeId = S.tempWallTypeId; S.currentWallTypeId = S.tempWallTypeId; }
+    if (alignChanged) { w.alignment = S.tempAlignment; S.currentAlignment = S.tempAlignment; }
+    if (typeChanged || alignChanged) {
+      const msg = [];
+      if (typeChanged) msg.push(getWallType(w).name);
+      if (alignChanged) msg.push(ALIGN_LABELS[w.alignment]);
+      toast(`Segmento: ${msg.join(' · ')}`, 'ok');
+    }
   }
+  S.redoStack.length = 0;
   closeWallPropertiesModal(); updateUI(); render();
 };
 
 /* ============================================================
-   EDITORES DE COTA TAPPABLES
+   EDITORES DE COTAS
    ============================================================ */
 function openWallLengthEditor(wallIdx) {
   const w = S.lines[wallIdx]; if (!w) return;
+  const kindLabel = isLine(w) ? 'Línea' : getWallType(w).name;
+  const extra = isLine(w) ? '' : ` · eje ${ALIGN_LABELS[w.alignment || 'center']}`;
   openModal({
-    title: 'Longitud del muro', desc: `${getWallType(w).name} · eje ${ALIGN_LABELS[w.alignment || 'center']}`,
+    title: 'Longitud del segmento', desc: `${kindLabel}${extra}`,
     def: w.dist.toFixed(3), type: 'number',
     cb: v => {
       const n = parseFloat(String(v).replace(',', '.'));
@@ -1250,7 +1477,7 @@ function openWallLengthEditor(wallIdx) {
         w.y2 = w.y1 + n * Math.sin(rad);
         recomputeWallMetrics(wallIdx, oldDist);
         S.redoStack.length = 0; updateUI(); render();
-        toast(`Muro → ${n.toFixed(3)}m`, 'ok');
+        toast(`Segmento → ${n.toFixed(3)}m`, 'ok');
       } else if (!isNaN(n)) toast('Debe ser > 0.02 m', 'err');
     }
   });
@@ -1302,28 +1529,44 @@ function openVanoPositionEditor(wallIdx, vanoIdx) {
    ============================================================ */
 let renderQueued = false;
 function render() { if (renderQueued) return; renderQueued = true; requestAnimationFrame(() => { renderQueued = false; paint(); }); }
-
 function addHitTarget(x, y, w, h, action, payload) { hitTargets.push({ x, y, w, h, action, payload }); }
 
-function drawWall(w, idx, isActive) {
+function drawSegment(w, idx, isActive) {
+  if (isLine(w)) { drawLineSegment(w, idx, isActive); return; }
+  drawWallSegment(w, idx, isActive);
+}
+function drawLineSegment(w, idx, isActive) {
+  const p1 = w2s(w.x1, w.y1);
+  const p2 = w2s(w.x2, w.y2);
+  const isSelWall = (S.selWallIdx === idx);
+  const isSelPiece = isSelWall && S.editMode === 'piece-selected';
+  const baseColor = isSelPiece ? '#22c55e' : (isActive ? '#a78bfa' : '#7c6fbf');
+  const lw = isSelPiece ? 4 : 2.4;
+  ctx.save();
+  ctx.strokeStyle = baseColor; ctx.lineWidth = lw; ctx.lineCap = 'round';
+  ctx.shadowColor = isSelPiece ? 'rgba(34,197,94,.85)' : 'rgba(167,139,250,.45)';
+  ctx.shadowBlur = isSelPiece ? 14 : 6;
+  ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = isSelPiece ? '#86efac' : (isActive ? '#ddd6fe' : '#9c8fdb');
+  ctx.beginPath(); ctx.arc(p1.x, p1.y, VERTEX_R + (isSelPiece ? 1 : 0), 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(p2.x, p2.y, VERTEX_R + (isSelPiece ? 1 : 0), 0, 7); ctx.fill();
+}
+function drawWallSegment(w, idx, isActive) {
   const { o1, o2 } = getWallFaceOffsets(w);
-  const t = getWallThickness(w);
   const at = (d, o) => { const p = wallPointWorld(w, d, o); return w2s(p.x, p.y); };
   const vanos = (w.vanos || []).slice().sort((a, b) => a.d1 - b.d1);
   const isSelWall = (S.selWallIdx === idx);
   const pieces = getWallPieces(w);
   const selPiece = isSelWall && S.editMode === 'piece-selected' ? pieces[S.selPieceIdx] : null;
-
+  const t = getWallThickness(w);
   const baseColor = isActive ? '#22d3ee' : '#0e8fa3';
   const fillColor = isActive ? 'rgba(34,211,238,.08)' : 'rgba(14,143,163,.05)';
   const jambColor = '#f59e0b';
-
-  // Relleno por tramos
   let cursor = 0;
   const tramos = [];
   for (const v of vanos) { if (v.d1 > cursor + 1e-6) tramos.push([cursor, v.d1]); cursor = v.d2; }
   if (cursor < w.dist - 1e-6) tramos.push([cursor, w.dist]);
-
   ctx.save();
   ctx.shadowColor = isActive ? 'rgba(34,211,238,.35)' : 'rgba(14,143,163,.15)';
   ctx.shadowBlur = isActive ? 6 : 2;
@@ -1334,12 +1577,7 @@ function drawWall(w, idx, isActive) {
     ctx.beginPath(); ctx.moveTo(A1.x, A1.y); ctx.lineTo(A2.x, A2.y); ctx.lineTo(B2.x, B2.y); ctx.lineTo(B1.x, B1.y); ctx.closePath(); ctx.fill();
   }
   ctx.restore();
-
-  // Caras + tapas (base)
-  ctx.strokeStyle = baseColor;
-  ctx.lineWidth = 1.7;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+  ctx.strokeStyle = baseColor; ctx.lineWidth = 1.7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   for (const o of [o1, o2]) {
     let c = 0;
     for (const v of vanos) {
@@ -1349,25 +1587,19 @@ function drawWall(w, idx, isActive) {
     if (c < w.dist - 1e-6) { const A = at(c, o), B = at(w.dist, o); ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke(); }
   }
   for (const d of [0, w.dist]) { const A = at(d, o1), B = at(d, o2); ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke(); }
-
-  // Jambas
-  ctx.strokeStyle = jambColor;
-  ctx.lineWidth = 1.9;
+  ctx.strokeStyle = jambColor; ctx.lineWidth = 1.9;
   for (const v of vanos) {
     for (const d of [v.d1, v.d2]) {
       const A = at(d, o1), B = at(d, o2);
       ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
     }
   }
-
-  // Iconos en vanos
   for (const v of vanos) {
     const mid = (v.d1 + v.d2) / 2;
     const C = at(mid, (o1 + o2) / 2);
     const wpx = (v.d2 - v.d1) * S.view.s;
     const thpx = t * S.view.s;
     const realIdx = w.vanos.indexOf(v);
-
     if (isSelWall && S.editMode === 'piece-selected') {
       if (wpx > 34 && thpx > 10) {
         const label = `${(v.d2 - v.d1).toFixed(2)}`;
@@ -1415,27 +1647,20 @@ function drawWall(w, idx, isActive) {
       }
     }
   }
-
-  // Vértices del eje
   ctx.fillStyle = isActive ? '#fff' : '#6b6b74';
   const p1 = at(0, 0), p2 = at(w.dist, 0);
   ctx.beginPath(); ctx.arc(p1.x, p1.y, VERTEX_R, 0, 7); ctx.fill();
   ctx.beginPath(); ctx.arc(p2.x, p2.y, VERTEX_R, 0, 7); ctx.fill();
-
-  // Highlight de la pieza seleccionada (por encima)
   if (selPiece) {
     const A1 = at(selPiece.t1, o1), A2 = at(selPiece.t2, o1);
     const B2 = at(selPiece.t2, o2), B1 = at(selPiece.t1, o2);
     ctx.save();
-    ctx.shadowColor = 'rgba(34,197,94,.85)';
-    ctx.shadowBlur = 16;
+    ctx.shadowColor = 'rgba(34,197,94,.85)'; ctx.shadowBlur = 16;
     ctx.fillStyle = 'rgba(34,197,94,.22)';
-    ctx.strokeStyle = '#22c55e';
-    ctx.lineWidth = 2.6;
+    ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 2.6;
     ctx.beginPath();
     ctx.moveTo(A1.x, A1.y); ctx.lineTo(A2.x, A2.y); ctx.lineTo(B2.x, B2.y); ctx.lineTo(B1.x, B1.y); ctx.closePath();
     ctx.fill(); ctx.stroke();
-    // Vértices A/B de la pieza (más grandes)
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#86efac';
     const PA = at(selPiece.t1, (o1 + o2) / 2);
@@ -1450,20 +1675,16 @@ function paint() {
   ctx.clearRect(0, 0, cv.width, cv.height);
   hitTargets = [];
   if (S.grid) drawGrid();
-
   const previewLen = Math.max(S.lastDist, 1);
   const r = S.view.s;
   const drawnDimRects = [];
-
   for (let i = 0; i < S.lines.length; i++) {
     const l = S.lines[i];
     const isActive = i >= S.polylineStart;
     const isSelWall = (S.selWallIdx === i);
-    drawWall(l, i, isActive);
-
-    // Cotas por pieza (con auto-hide)
+    drawSegment(l, i, isActive);
     if (r > 12 && S.dimMode !== 'off') {
-      const pieces = getWallPieces(l);
+      const pieces = isLine(l) ? [{ t1: 0, t2: l.dist }] : getWallPieces(l);
       for (let k = 0; k < pieces.length; k++) {
         const p = pieces[k];
         const segLen = p.t2 - p.t1;
@@ -1490,15 +1711,13 @@ function paint() {
         }
         if (show) {
           drawnDimRects.push({ x: lx, y: ly, w: tw, h: th });
-          // Color verde si es la pieza seleccionada
           const isSelPiece = isSelWall && S.editMode === 'piece-selected' && k === S.selPieceIdx;
-          drawLabel(label, c.x, c.y - 22, isActive && !isSelPiece, isSelPiece);
+          drawLabel(label, c.x, c.y - 22, isActive && !isSelPiece, isSelPiece, isLine(l));
           if (!isSelPiece) addHitTarget(lx, ly, tw, th, 'edit-wall-length', { wallIdx: i });
         }
       }
     }
   }
-
   if (S.polylineStart < S.lines.length) {
     const l0 = S.lines[S.polylineStart];
     const p0 = w2s(l0.x1, l0.y1);
@@ -1507,18 +1726,14 @@ function paint() {
     ctx.fillStyle = '#08080a';
     ctx.beginPath(); ctx.arc(p0.x, p0.y, 2, 0, 7); ctx.fill();
   }
-
   drawTexts();
-
   const bp = w2s(S.base.x, S.base.y);
   drawPointer(bp.x, bp.y);
-
   const rad = S.angle * Math.PI / 180;
   const endS = w2s(S.base.x + Math.cos(rad) * previewLen, S.base.y + Math.sin(rad) * previewLen);
   ctx.strokeStyle = 'rgba(245,158,11,.9)'; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
   ctx.beginPath(); ctx.moveTo(bp.x, bp.y); ctx.lineTo(endS.x, endS.y); ctx.stroke();
   ctx.setLineDash([]);
-
   ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(bp.x - 7, bp.y); ctx.lineTo(bp.x - 3, bp.y);
@@ -1526,9 +1741,7 @@ function paint() {
   ctx.moveTo(bp.x, bp.y - 7); ctx.lineTo(bp.x, bp.y - 3);
   ctx.moveTo(bp.x, bp.y + 3); ctx.lineTo(bp.x, bp.y + 7);
   ctx.stroke();
-
   drawEditUI();
-
   if (S.textMode === 'placing') {
     const t = (performance.now() / 900) % 1;
     ctx.strokeStyle = `rgba(244,114,182,${0.9 - t * 0.5})`; ctx.lineWidth = 2.5;
@@ -1543,7 +1756,6 @@ function paint() {
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     render();
   }
-
   if (S.picking) {
     for (const v of collectVertices()) {
       const sp = w2s(v.x, v.y);
@@ -1577,12 +1789,9 @@ function paint() {
     ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.arc(bp.x, bp.y, gripR, 0, 7); ctx.stroke(); ctx.setLineDash([]);
     render();
   }
-
   if (S.editMode === 'choose-point' || S.editMode === 'moving') render();
-
   drawUCS();
 }
-
 function drawTexts() {
   for (let i = 0; i < S.texts.length; i++) {
     const t = S.texts[i];
@@ -1614,7 +1823,6 @@ function drawTexts() {
     }
   }
 }
-
 function drawEditUI() {
   const rects = getEditButtonRects();
   if (rects.length) {
@@ -1629,7 +1837,6 @@ function drawEditUI() {
     }
     return;
   }
-
   if (S.editMode === 'choose-point' && S.selWallIdx >= 0) {
     const w = S.lines[S.selWallIdx];
     const pieces = getWallPieces(w);
@@ -1654,7 +1861,6 @@ function drawEditUI() {
       ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     });
   }
-
   if (S.editMode === 'moving' && S.selWallIdx >= 0) {
     const w = S.lines[S.selWallIdx];
     const pieces = getWallPieces(w);
@@ -1694,22 +1900,63 @@ function drawEditUI() {
     ctx.closePath(); ctx.fill();
   }
 }
-
-function drawLabel(text, x, y, isActive = true, isSelected = false) {
+function getEditButtonRects() {
+  if (S.selWallIdx < 0 || S.selWallIdx >= S.lines.length) return [];
+  if (S.editMode !== 'piece-selected') return [];
+  const w = S.lines[S.selWallIdx];
+  const pieces = getWallPieces(w);
+  const piece = pieces[S.selPieceIdx];
+  if (!piece) return [];
+  const c = getPieceCenterScreen(w, piece);
+  ctx.font = '700 11px "SF Mono","JetBrains Mono",Consolas,monospace';
+  let btns;
+  if (isLine(w)) {
+    btns = [
+      { label: '✎ EDITAR', action: 'edit',   color: '#22c55e' },
+      { label: '🧱 TIPO',   action: 'type',   color: '#a78bfa' },
+      { label: '🗑 BORRAR', action: 'delete', color: '#ef4444' },
+    ];
+  } else {
+    btns = [
+      { label: '✎ EDITAR', action: 'edit',   color: '#22c55e' },
+      { label: '🚪 VANO',   action: 'vano',   color: '#22d3ee' },
+      { label: '🧱 TIPO',   action: 'type',   color: '#a78bfa' },
+      { label: '🗑 BORRAR', action: 'delete', color: '#ef4444' },
+    ];
+  }
+  const pad = 8, gap = 5, h = 30;
+  const sizes = btns.map(b => ctx.measureText(b.label).width + pad * 2);
+  const totalW = sizes.reduce((s, v) => s + v, 0) + gap * (btns.length - 1);
+  const x0 = c.x - totalW / 2;
+  const y = c.y - 58;
+  const rects = [];
+  let x = x0;
+  btns.forEach((b, i) => {
+    rects.push({ x, y, w: sizes[i], h, action: b.action, label: b.label, color: b.color });
+    x += sizes[i] + gap;
+  });
+  return rects;
+}
+function drawLabel(text, x, y, isActive = true, isSelected = false, isLine = false) {
   ctx.font = '600 11px "SF Mono","JetBrains Mono",Consolas,monospace';
   const w = ctx.measureText(text).width + 12;
   const h = 18;
   const rx = x - w / 2, ry = y - h / 2;
   ctx.fillStyle = isSelected ? 'rgba(34,197,94,.95)' : 'rgba(8,8,10,.85)';
-  ctx.strokeStyle = isSelected ? '#22c55e' : (isActive ? 'rgba(245,158,11,.6)' : 'rgba(245,158,11,.25)');
+  let edge = isActive ? 'rgba(245,158,11,.6)' : 'rgba(245,158,11,.25)';
+  if (isLine && !isSelected) edge = isActive ? 'rgba(167,139,250,.7)' : 'rgba(167,139,250,.3)';
+  ctx.strokeStyle = isSelected ? '#22c55e' : edge;
   ctx.lineWidth = isSelected ? 1.5 : 1;
   roundRect(rx, ry, w, h, 9); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = isSelected ? '#00220d' : (isActive ? '#fcd99a' : 'rgba(252,217,154,.5)');
+  let txtColor;
+  if (isSelected) txtColor = '#00220d';
+  else if (isLine) txtColor = isActive ? '#ddd6fe' : 'rgba(221,214,254,.5)';
+  else txtColor = isActive ? '#fcd99a' : 'rgba(252,217,154,.5)';
+  ctx.fillStyle = txtColor;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(text, x, y + .5);
   ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
 }
-
 function roundRect(x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -1719,14 +1966,12 @@ function roundRect(x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-
 function chooseGridStep() {
   const targetPx = 55; const raw = targetPx / S.view.s;
   const pow = Math.pow(10, Math.floor(Math.log10(raw)));
   const n = raw / pow; let m = 1; if (n >= 5) m = 5; else if (n >= 2) m = 2;
   return pow * m;
 }
-
 function drawGrid() {
   const step = chooseGridStep();
   const stepPx = step * S.view.s;
@@ -1772,17 +2017,17 @@ function formatMeters(m) {
   if (m >= 0.001) return (m * 1000).toFixed(1) + 'mm';
   return (m * 1e6).toFixed(0) + 'µm';
 }
-
 function drawPointer(cx, cy) {
   const isDial = S.draggingDial;
   const isFree = S.draggingPointer;
   const isTextMode = S.textMode === 'placing';
-  let color = isDial ? '#22c55e' : (isFree ? '#22d3ee' : '#f59e0b');
+  const isLineKind = S.currentSegmentKind === 'line';
+  let color = isDial ? '#22c55e' : (isFree ? '#22d3ee' : (isLineKind ? '#a78bfa' : '#f59e0b'));
   if (isTextMode) color = '#f472b6';
   const rad = S.angle * Math.PI / 180;
   const arrowLen = 46, tail = 12, headLen = 14, headAng = Math.PI / 5.5;
   const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 34);
-  grad.addColorStop(0, isTextMode ? 'rgba(244,114,182,.28)' : (isDial ? 'rgba(34,197,94,.22)' : (isFree ? 'rgba(34,211,238,.28)' : 'rgba(245,158,11,.18)')));
+  grad.addColorStop(0, isTextMode ? 'rgba(244,114,182,.28)' : (isDial ? 'rgba(34,197,94,.22)' : (isFree ? 'rgba(34,211,238,.28)' : (isLineKind ? 'rgba(167,139,250,.24)' : 'rgba(245,158,11,.18)'))));
   grad.addColorStop(1, 'rgba(245,158,11,0)');
   ctx.fillStyle = grad;
   ctx.beginPath(); ctx.arc(cx, cy, 34, 0, 7); ctx.fill();
@@ -1804,7 +2049,6 @@ function drawPointer(cx, cy) {
   ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx, cy, 3.2, 0, 7); ctx.fill();
   ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(cx, cy, 1.3, 0, 7); ctx.fill();
 }
-
 function drawUCS() {
   const ox = 24, oy = cv.height - 24, len = 22;
   ctx.lineWidth = 2; ctx.lineCap = 'round';
@@ -1832,7 +2076,6 @@ function applySnap(deg) {
   }
 }
 function setAngle(deg, announce = false) { S.angle = applySnap(deg); updateUI(); render(); if (announce) toast(`Rumbo ${S.angle.toFixed(0)}°`); }
-
 function commitSegment(dist) {
   if (!isFinite(dist) || Math.abs(dist) < 1e-9) return;
   let actualDist = dist, actualAngle = S.angle;
@@ -1844,16 +2087,16 @@ function commitSegment(dist) {
   S.lines.push({
     x1: S.base.x, y1: S.base.y, x2: tx, y2: ty,
     dist: actualDist, angle: actualAngle,
-    typeId: S.currentWallTypeId, alignment: S.currentAlignment, vanos: [],
+    kind: S.currentSegmentKind, typeId: S.currentWallTypeId,
+    alignment: S.currentAlignment, vanos: [],
   });
   S.base = { x: tx, y: ty };
   if (kp.visible && kp.mode === 'dist') kpClearInput();
   ensureBaseVisible(); updateUI(); render();
   const sign = dist < 0 ? '−' : '+';
-  const wt = S.wallTypes[S.currentWallTypeId];
-  toast(`${sign}${actualDist.toFixed(3)}m · ${wt ? wt.name : ''}`, 'ok');
+  const kindLbl = S.currentSegmentKind === 'line' ? 'LÍN' : (S.wallTypes[S.currentWallTypeId] ? S.wallTypes[S.currentWallTypeId].name : 'MURO');
+  toast(`${sign}${actualDist.toFixed(3)}m · ${kindLbl}`, 'ok');
 }
-
 function undo() {
   if (!S.lines.length) return;
   const l = S.lines.pop();
@@ -1873,7 +2116,7 @@ function redo() {
 function closePolygon() {
   const startIdx = S.polylineStart || 0;
   const segCount = S.lines.length - startIdx;
-  if (segCount < 2) { toast('Se necesitan 2+ muros', 'warn'); return; }
+  if (segCount < 2) { toast('Se necesitan 2+ segmentos', 'warn'); return; }
   const startLine = S.lines[startIdx]; if (!startLine) { toast('Inicio inválido', 'warn'); return; }
   const o = { x: startLine.x1, y: startLine.y1 };
   const d = Math.hypot(o.x - S.base.x, o.y - S.base.y);
@@ -1883,7 +2126,8 @@ function closePolygon() {
   S.lines.push({
     x1: S.base.x, y1: S.base.y, x2: o.x, y2: o.y,
     dist: d, angle: ang,
-    typeId: S.currentWallTypeId, alignment: S.currentAlignment, vanos: [],
+    kind: S.currentSegmentKind, typeId: S.currentWallTypeId,
+    alignment: S.currentAlignment, vanos: [],
   });
   S.base = { x: o.x, y: o.y }; S.polylineStart = S.lines.length;
   updateUI(); render(); toast(`Polígono cerrado · ${d.toFixed(2)}m`, 'ok');
@@ -1892,8 +2136,8 @@ function terminarPolyline() {
   if (!S.lines.length) { toast('No hay dibujo para terminar', 'warn'); return; }
   if (S.polylineStart >= S.lines.length) {
     S.picking = true; S.pickSnap = null; S.newPolylineOnPick = false;
-    ui.bBase.classList.add('armed');
-    updateUI(); render(); toast('Puntero libre · arrástralo o toca el lienzo', 'ok'); return;
+    ui.bBase.classList.add('armed'); updateUI(); render();
+    toast('Puntero libre · arrástralo o toca el lienzo', 'ok'); return;
   }
   S.polylineStart = S.lines.length;
   S.picking = true; S.pickSnap = null; S.newPolylineOnPick = false;
@@ -1922,11 +2166,16 @@ function zoomExtents() {
   }
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const w of S.lines) {
-    const { o1, o2 } = getWallFaceOffsets(w);
-    for (const d of [0, w.dist]) for (const o of [o1, o2]) {
-      const p = wallPointWorld(w, d, o);
-      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+    if (isLine(w)) {
+      minX = Math.min(minX, w.x1, w.x2); maxX = Math.max(maxX, w.x1, w.x2);
+      minY = Math.min(minY, w.y1, w.y2); maxY = Math.max(maxY, w.y1, w.y2);
+    } else {
+      const { o1, o2 } = getWallFaceOffsets(w);
+      for (const d of [0, w.dist]) for (const o of [o1, o2]) {
+        const p = wallPointWorld(w, d, o);
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+      }
     }
   }
   for (const t of S.texts) {
@@ -1977,7 +2226,6 @@ function handleTap(p) {
     return;
   }
 
-  // 1) Hit targets (cotas tappables, botones flotantes)
   for (const h of hitTargets) {
     if (p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h) {
       const pl = h.payload || {};
@@ -1987,22 +2235,17 @@ function handleTap(p) {
     }
   }
 
-  // 2) Botones flotantes
   const rects = getEditButtonRects();
   for (const r of rects) {
     if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) {
-      if (r.action === 'edit') {
-        S.editMode = 'choose-point';
-        toast('Toca el punto A o B del segmento');
-        render();
-      } else if (r.action === 'delete') { deletePiece(S.selWallIdx, S.selPieceIdx); }
+      if (r.action === 'edit') { S.editMode = 'choose-point'; toast('Toca el punto A o B del segmento'); render(); }
+      else if (r.action === 'delete') { deletePiece(S.selWallIdx, S.selPieceIdx); }
       else if (r.action === 'vano') { openVanoModal(S.selWallIdx, -1, S.selPieceIdx); }
       else if (r.action === 'type') { openWallPropertiesModal(S.selWallIdx); }
       return;
     }
   }
 
-  // 3) Choose-point: elegir punto A o B de la pieza
   if (S.editMode === 'choose-point' && S.selWallIdx >= 0) {
     const w = S.lines[S.selWallIdx];
     const pieces = getWallPieces(w);
@@ -2028,7 +2271,6 @@ function handleTap(p) {
     return;
   }
 
-  // 4) Pieza seleccionada → cambiar a otra pieza o vano, o deseleccionar
   if (S.editMode === 'piece-selected') {
     const hit = findWallPieceAt(p.x, p.y);
     if (hit && hit.inVano) { openVanoModal(hit.wallIdx, hit.vanoIdx, -1); return; }
@@ -2042,7 +2284,6 @@ function handleTap(p) {
     return;
   }
 
-  // 5) Idle → seleccionar vano, texto o pieza
   if (S.editMode === 'idle') {
     const hit = findWallPieceAt(p.x, p.y);
     if (hit && hit.inVano) { openVanoModal(hit.wallIdx, hit.vanoIdx, -1); return; }
@@ -2093,7 +2334,6 @@ cv.addEventListener('pointerdown', e => {
     if (S.picking) { const cand = findNearestVertex(p.x, p.y); S.pickSnap = cand; render(); }
   }
 });
-
 cv.addEventListener('pointermove', e => {
   if (!ptrs.has(e.pointerId)) return;
   const p = localXY(e); ptrs.set(e.pointerId, p);
@@ -2137,7 +2377,6 @@ cv.addEventListener('pointermove', e => {
     }
   }
 });
-
 cv.addEventListener('pointerup', e => {
   const p = ptrs.get(e.pointerId);
   ptrs.delete(e.pointerId);
@@ -2185,14 +2424,12 @@ cv.addEventListener('pointerup', e => {
   } else if (wasTap && !S.picking && p) { handleTap(p); }
   if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
 });
-
 cv.addEventListener('pointercancel', e => {
   ptrs.delete(e.pointerId);
   S.draggingDial = false; S.draggingPointer = false;
   S.draggingText = null; S.textDragMoved = false; S.textDragStart = null; S.pickSnap = null;
   if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
 });
-
 cv.addEventListener('wheel', e => {
   e.preventDefault();
   const p = localXY(e); const w = s2w(p.x, p.y);
@@ -2202,7 +2439,6 @@ cv.addEventListener('wheel', e => {
   S.view.x = p.x - w.x * ns; S.view.y = p.y + w.y * ns;
   updateUI(); render();
 }, { passive: false });
-
 function updateAngleFromPoint(sx, sy, bp) {
   const dx = sx - bp.x, dy = bp.y - sy;
   let deg = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
@@ -2220,8 +2456,7 @@ async function connectBLE() {
   try {
     const dev = await navigator.bluetooth.requestDevice({
       filters: [
-        { services: [SERVICE_DATA] },
-        { services: [SERVICE_DATA.toLowerCase()] },
+        { services: [SERVICE_DATA] }, { services: [SERVICE_DATA.toLowerCase()] },
         { namePrefix: 'GLM' }, { namePrefix: 'BOSCH' },
       ],
       optionalServices: [SERVICE_DATA, SERVICE_DATA.toLowerCase()],
@@ -2341,9 +2576,14 @@ function updateUI() {
   ui.tCoord.textContent = `${S.base.x.toFixed(2)}, ${S.base.y.toFixed(2)}`;
   ui.tDist.textContent = S.lastDist.toFixed(3);
   ui.tAng.textContent = `${S.angle.toFixed(0).padStart(3, '0')}°`;
-  ui.tSeg.textContent = S.lines.length;
-  let vanoCount = 0;
-  for (const l of S.lines) vanoCount += (l.vanos || []).length;
+  let wallCount = 0, lineCount = 0, vanoCount = 0;
+  for (const l of S.lines) {
+    if (isLine(l)) lineCount++;
+    else wallCount++;
+    vanoCount += (l.vanos || []).length;
+  }
+  ui.tSeg.textContent = wallCount;
+  ui.tLines.textContent = lineCount;
   ui.tVanos.textContent = vanoCount;
   ui.tTxt.textContent = S.texts.length;
   const z = S.view.s;
@@ -2375,7 +2615,7 @@ function updateUI() {
   ui.dimsVal.textContent = dimShort[S.dimMode];
   ui.gridVal.textContent = S.grid ? 'ON' : 'OFF';
   ui.gridVal.style.color = S.grid ? 'var(--ac)' : '';
-  ui.dxfSub.textContent = `${S.lines.length} muros · ${vanoCount} vanos · ${S.texts.length} textos`;
+  ui.dxfSub.textContent = `${wallCount} muros · ${lineCount} líneas · ${S.texts.length} textos`;
   ui.magSub.textContent = `Radio ${S.pickSnapPx} px`;
   ui.magVal.textContent = S.pickSnapPx;
   ui.defTextSize.textContent = S.defaultTextSize.toFixed(2);
@@ -2388,6 +2628,9 @@ function updateUI() {
   ui.kpState.style.color = kp.visible ? 'var(--ac)' : '';
   ui.kpSub.textContent = kp.visible ? (kp.pinned ? 'Fijado en pantalla' : 'Visible · auto-oculta al aplicar') : 'Oculto';
   ui.btnKpToggle.classList.toggle('on', kp.visible);
+
+  // Toolbar
+  updateToolbar();
 }
 
 /* ============================================================
@@ -2447,22 +2690,28 @@ ui.optBLE.onclick = () => { closeSheet(); setTimeout(connectBLE, 220); };
 ui.optCompass.onclick = () => { closeSheet(); setTimeout(enableCompass, 220); };
 
 ui.optDefaultWallType.onclick = () => {
+  S.tempKind = 'wall';
   S.tempWallTypeId = S.currentWallTypeId;
   S.tempAlignment = S.currentAlignment;
   S.editingWallIdx = -2;
-  updateWallTypeTiles(); updateAlignTabs();
-  ui.wmTitle.textContent = 'Tipo por defecto';
+  updateKindTiles(); updateWallTypeTiles(); updateAlignTabs();
+  updateSectionsVisibility();
+  ui.wmTitle.textContent = 'Tipo de muro por defecto';
   ui.wmDesc.textContent = 'Para los nuevos muros que dibujes';
+  ui.wmWarnVanos.classList.add('section-hidden');
   ui.wmOk.dataset.mode = 'defaults';
   ui.overlay.classList.add('show'); ui.wallModal.classList.add('show');
 };
 ui.optDefaultAlign.onclick = () => {
+  S.tempKind = 'wall';
   S.tempWallTypeId = S.currentWallTypeId;
   S.tempAlignment = S.currentAlignment;
   S.editingWallIdx = -2;
-  updateWallTypeTiles(); updateAlignTabs();
+  updateKindTiles(); updateWallTypeTiles(); updateAlignTabs();
+  updateSectionsVisibility();
   ui.wmTitle.textContent = 'Alineación por defecto';
   ui.wmDesc.textContent = 'Para los nuevos muros que dibujes';
+  ui.wmWarnVanos.classList.add('section-hidden');
   ui.wmOk.dataset.mode = 'defaults';
   ui.overlay.classList.add('show'); ui.wallModal.classList.add('show');
 };
@@ -2529,7 +2778,7 @@ ui.optClear.onclick = () => {
   closeSheet();
   setTimeout(() => {
     openModal({
-      title: '¿Borrar todo?', desc: 'Se eliminarán todos los muros, vanos, textos y vértices. Escribe BORRAR para confirmar.',
+      title: '¿Borrar todo?', desc: 'Se eliminarán todos los segmentos, textos y vértices. Escribe BORRAR para confirmar.',
       def: '', cb: v => {
         if (String(v).trim().toUpperCase() === 'BORRAR') {
           S.lines = []; S.texts = []; S.redoStack = [];
