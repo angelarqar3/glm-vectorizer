@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#08080a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GLM CAD Pro — Mover & Editar</title>
+<title>GLM CAD Pro — Proyectos + Puertas/Ventanas</title>
 <style>
 :root{
   --bg:#08080a; --s1:#101014; --s2:#17171c; --s3:#1f1f26;
@@ -16,6 +16,8 @@
   --ok:#22c55e; --wn:#f59e0b; --dg:#ef4444;
   --pk:#f472b6; --pk-d:rgba(244,114,182,.14);
   --vi:#a78bfa; --vi-d:rgba(167,139,250,.14);
+  --puerta:#60a5fa; --puerta-d:rgba(96,165,250,.15);
+  --ventana:#22d3ee; --ventana-d:rgba(34,211,238,.15);
   --r1:6px; --r2:10px; --r3:14px;
   --sh:0 8px 28px rgba(0,0,0,.55);
   --mono:"SF Mono","JetBrains Mono",Consolas,monospace;
@@ -58,6 +60,10 @@ canvas{display:block;width:100%;height:100%}
 .tool.on .t-tag{color:rgba(34,211,238,.75)}
 .tool.line-tool.on{background:var(--vi-d);border-color:var(--vi);color:var(--vi)}
 .tool.line-tool.on .t-tag{color:rgba(167,139,250,.75)}
+.tool.puerta-tool.on{background:var(--puerta-d);border-color:var(--puerta);color:var(--puerta)}
+.tool.puerta-tool.on .t-tag{color:rgba(96,165,250,.75)}
+.tool.ventana-tool.on{background:var(--ventana-d);border-color:var(--ventana);color:var(--ventana)}
+.tool.ventana-tool.on .t-tag{color:rgba(34,211,238,.75)}
 .tool.action{background:linear-gradient(180deg,rgba(245,158,11,.14),rgba(245,158,11,.05));border-color:rgba(245,158,11,.5);color:#fcd99a}
 .tool.action:active{background:rgba(245,158,11,.22)}
 .tool.action:disabled{opacity:.32;cursor:not-allowed}
@@ -83,6 +89,8 @@ canvas{display:block;width:100%;height:100%}
 .tel-v.ok{color:var(--ok)}
 .tel-v.pk{color:var(--pk)}
 .tel-v.vi{color:var(--vi)}
+.tel-v.puerta{color:var(--puerta)}
+.tel-v.ventana{color:var(--ventana)}
 
 .dock{flex-shrink:0;height:calc(66px + env(safe-area-inset-bottom));padding:0 5px env(safe-area-inset-bottom);background:var(--s1);border-top:1px solid var(--bd);display:grid;grid-template-columns:repeat(8,1fr);align-items:center;gap:4px;z-index:20}
 .dbtn{height:50px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r2);color:var(--tx);font:600 8px -apple-system,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:.15s;letter-spacing:.01em;text-transform:uppercase;position:relative;overflow:hidden;padding:0 1px;min-width:0}
@@ -102,56 +110,17 @@ canvas{display:block;width:100%;height:100%}
 .dbtn.pink-armed{background:var(--pk);color:#3d0f26;border-color:var(--pk)}
 .dbtn.pink-armed .ic{color:#3d0f26}
 
-/* Mini panel flotante de acciones contextuales al seleccionar */
-.actions-panel{
-  position:absolute;
-  bottom:12px;
-  left:50%;
-  transform:translateX(-50%) translateY(8px);
-  display:flex;
-  gap:6px;
-  padding:6px;
-  background:rgba(16,16,20,.94);
-  backdrop-filter:blur(14px);
-  border:1px solid var(--bd2);
-  border-radius:14px;
-  box-shadow:0 8px 26px rgba(0,0,0,.6);
-  opacity:0;
-  pointer-events:none;
-  transition:.22s cubic-bezier(.2,.8,.3,1);
-  z-index:15;
-  max-width:calc(100% - 24px);
-  overflow-x:auto;
-  scrollbar-width:none;
-}
+.actions-panel{position:absolute;bottom:12px;left:50%;transform:translateX(-50%) translateY(8px);display:flex;gap:6px;padding:6px;background:rgba(16,16,20,.94);backdrop-filter:blur(14px);border:1px solid var(--bd2);border-radius:14px;box-shadow:0 8px 26px rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:.22s cubic-bezier(.2,.8,.3,1);z-index:15;max-width:calc(100% - 24px);overflow-x:auto;scrollbar-width:none}
 .actions-panel::-webkit-scrollbar{display:none}
 .actions-panel.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
-.ap-btn{
-  flex-shrink:0;
-  height:44px;
-  min-width:56px;
-  background:transparent;
-  border:1px solid transparent;
-  border-radius:10px;
-  color:var(--tx2);
-  font:700 9px -apple-system,system-ui,sans-serif;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:2px;
-  cursor:pointer;
-  transition:.15s;
-  letter-spacing:.03em;
-  text-transform:uppercase;
-  padding:0 8px;
-  white-space:nowrap;
-}
+.ap-btn{flex-shrink:0;height:44px;min-width:56px;background:transparent;border:1px solid transparent;border-radius:10px;color:var(--tx2);font:700 9px -apple-system,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:.15s;letter-spacing:.03em;text-transform:uppercase;padding:0 8px;white-space:nowrap}
 .ap-btn:active{background:var(--s3);transform:scale(.95)}
 .ap-btn .ap-ic{font-size:15px;line-height:1}
 .ap-btn.edit{color:#22c55e}
 .ap-btn.move{color:#22d3ee}
-.ap-btn.vano{color:#f59e0b}
+.ap-btn.puerta{color:var(--puerta)}
+.ap-btn.ventana{color:var(--ventana)}
+.ap-btn.rotate{color:#f472b6}
 .ap-btn.type{color:#a78bfa}
 .ap-btn.del{color:#ef4444}
 .ap-btn:disabled{opacity:.32;cursor:not-allowed}
@@ -164,6 +133,7 @@ canvas{display:block;width:100%;height:100%}
 .kp-tag.dist{color:var(--ac);border-color:rgba(34,211,238,.4);background:var(--ac-d)}
 .kp-tag.edit{color:#86efac;border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1)}
 .kp-tag.move{color:#67e8f9;border-color:rgba(34,211,238,.5);background:rgba(34,211,238,.1)}
+.kp-tag.opening{color:#93c5fd;border-color:rgba(96,165,250,.5);background:rgba(96,165,250,.1)}
 .kp-display{flex:1;display:flex;align-items:baseline;background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r1);padding:4px 10px;min-width:0;height:36px;transition:.15s}
 .kp-display.edit{border-color:rgba(34,197,94,.7);box-shadow:0 0 0 3px rgba(34,197,94,.15)}
 #kpInput{flex:1;background:transparent;border:none;outline:none;color:var(--ac);font:800 16px var(--mono);letter-spacing:.05em;text-align:right;padding:0;min-width:0;height:100%}
@@ -185,7 +155,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .2s;z-index:500}
 .overlay.show{opacity:1;pointer-events:auto}
 
-.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);width:min(400px,92vw);background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r3);padding:20px;box-shadow:var(--sh);opacity:0;pointer-events:none;transition:.22s cubic-bezier(.2,.8,.3,1);z-index:501;max-height:88vh;overflow-y:auto}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);width:min(420px,92vw);background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r3);padding:20px;box-shadow:var(--sh);opacity:0;pointer-events:none;transition:.22s cubic-bezier(.2,.8,.3,1);z-index:501;max-height:88vh;overflow-y:auto}
 .modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
 .modal h3{font-size:15px;font-weight:700;margin-bottom:4px}
 .modal p{font-size:12px;color:var(--tx2);margin-bottom:14px;line-height:1.45}
@@ -208,12 +178,18 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .kind-tile:active{background:var(--s3)}
 .kind-tile.on{background:var(--ac-d);border-color:var(--ac)}
 .kind-tile.on.line-tile{background:var(--vi-d);border-color:var(--vi)}
+.kind-tile.on.puerta-tile{background:var(--puerta-d);border-color:var(--puerta)}
+.kind-tile.on.ventana-tile{background:var(--ventana-d);border-color:var(--ventana)}
 .kind-tile .k-thumb{width:64px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--tx2)}
 .kind-tile.on .k-thumb{color:var(--ac)}
 .kind-tile.on.line-tile .k-thumb{color:var(--vi)}
-.kind-tile .k-label{font:700 12px var(--mono);color:var(--tx);letter-spacing:.02em}
+.kind-tile.on.puerta-tile .k-thumb{color:var(--puerta)}
+.kind-tile.on.ventana-tile .k-thumb{color:var(--ventana)}
+.kind-tile .k-label{font:700 11px var(--mono);color:var(--tx);letter-spacing:.02em;text-align:center}
 .kind-tile.on .k-label{color:var(--ac)}
 .kind-tile.on.line-tile .k-label{color:var(--vi)}
+.kind-tile.on.puerta-tile .k-label{color:var(--puerta)}
+.kind-tile.on.ventana-tile .k-label{color:var(--ventana)}
 
 .wall-type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
 .wall-type-tile{background:var(--s1);border:1.5px solid var(--bd2);border-radius:var(--r2);padding:10px 8px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:74px}
@@ -230,11 +206,17 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .align-tab.on{background:var(--ac-d);border-color:var(--ac);color:var(--ac)}
 .align-tab .at-icon{font-size:15px;line-height:1;font-family:var(--mono)}
 
+.hinge-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.hinge-tab{height:44px;background:var(--s1);border:1.5px solid var(--bd2);border-radius:var(--r1);color:var(--tx2);font:600 9px -apple-system,system-ui,sans-serif;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-transform:uppercase;letter-spacing:.03em}
+.hinge-tab:active{background:var(--s3)}
+.hinge-tab.on{background:var(--puerta-d);border-color:var(--puerta);color:var(--puerta)}
+.hinge-tab .ht-icon{font-size:14px;line-height:1}
+
 .section-hidden{display:none !important}
 .warn-box{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:var(--r2);padding:10px 12px;margin-top:12px;font-size:12px;color:#fcd99a;display:flex;gap:8px;align-items:flex-start}
 .warn-box .warn-ic{font-size:16px;flex-shrink:0;line-height:1.2}
 
-.sheet{position:fixed;left:0;right:0;bottom:0;max-height:80vh;background:var(--s1);border-top:1px solid var(--bd2);border-radius:var(--r3) var(--r3) 0 0;box-shadow:var(--sh);transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.3,1);z-index:501;display:flex;flex-direction:column}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:85vh;background:var(--s1);border-top:1px solid var(--bd2);border-radius:var(--r3) var(--r3) 0 0;box-shadow:var(--sh);transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.3,1);z-index:501;display:flex;flex-direction:column}
 .sheet.show{transform:translateY(0)}
 .sheet-handle{width:38px;height:4px;background:var(--bd2);border-radius:2px;margin:10px auto 6px;flex-shrink:0}
 .sheet-body{overflow-y:auto;padding:6px 16px 24px;-webkit-overflow-scrolling:touch}
@@ -249,6 +231,23 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .opt-r{color:var(--tx3);font-size:14px}
 .opt.danger{color:#ff6b6b}
 .opt.danger .opt-ic{color:#ff6b6b}
+.opt.accent{color:var(--ac)}
+.opt.accent .opt-ic{background:var(--ac-d);color:var(--ac)}
+
+/* Project list dentro del modal */
+.proj-list{max-height:44vh;overflow-y:auto;margin:8px 0 6px;display:flex;flex-direction:column;gap:6px;padding-right:2px}
+.proj-item{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;background:var(--s1);border:1px solid var(--bd);border-radius:var(--r2);cursor:pointer;transition:.15s;gap:10px}
+.proj-item:active{background:var(--s3)}
+.proj-item-main{flex:1;min-width:0}
+.proj-item-name{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proj-item-sub{font-size:10.5px;color:var(--tx2);font-family:var(--mono);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proj-item-del{
+  flex-shrink:0;width:34px;height:34px;border-radius:var(--r1);
+  background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);
+  color:#ff8a8a;display:grid;place-items:center;cursor:pointer;transition:.15s;font-size:14px;
+}
+.proj-item-del:active{background:rgba(239,68,68,.25);transform:scale(.94)}
+.proj-empty{text-align:center;color:var(--tx3);padding:24px 12px;font-size:12px;line-height:1.5}
 
 .toasts{position:fixed;left:50%;bottom:calc(110px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;z-index:600;transition:bottom .26s cubic-bezier(.2,.8,.3,1)}
 .toast{background:rgba(23,23,28,.96);backdrop-filter:blur(14px);border:1px solid var(--bd2);border-radius:20px;padding:8px 16px;font-size:12px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.5);color:var(--tx);animation:tIn .25s cubic-bezier(.2,.8,.3,1);white-space:nowrap}
@@ -257,6 +256,8 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .toast.err{border-color:rgba(239,68,68,.55);color:#fca5a5}
 .toast.pk{border-color:rgba(244,114,182,.55);color:#fbcfe8}
 .toast.vi{border-color:rgba(167,139,250,.55);color:#ddd6fe}
+.toast.puerta{border-color:rgba(96,165,250,.55);color:#bfdbfe}
+.toast.ventana{border-color:rgba(34,211,238,.55);color:#a5f3fc}
 @keyframes tIn{from{opacity:0;transform:translateY(10px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes tOut{to{opacity:0;transform:translateY(-8px) scale(.9)}}
 </style>
@@ -267,6 +268,9 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="brand"><span id="dot" class="dot"></span><span>GLM&nbsp;CAD</span></div>
   <span class="stat" id="statTxt">—</span>
   <div class="spacer"></div>
+  <button class="ibtn" id="btnProject" title="Proyectos">
+    <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+  </button>
   <button class="ibtn" id="btnKpToggle" title="Teclado numérico"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M12 10h.01M17 10h.01M7 14h.01M12 14h.01M17 14h.01"/></svg></button>
   <button class="ibtn" id="btnFull" title="Pantalla completa"><svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
   <button class="ibtn" id="btnSettings" title="Ajustes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
@@ -293,11 +297,12 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   </div>
   <div class="scalebar" id="scalebar">1m</div>
 
-  <!-- Panel flotante de acciones contextuales -->
   <div class="actions-panel" id="actionsPanel">
     <button class="ap-btn edit" id="apEdit"><span class="ap-ic">✎</span>EDITAR</button>
     <button class="ap-btn move" id="apMove"><span class="ap-ic">↔</span>MOVER</button>
-    <button class="ap-btn vano" id="apVano"><span class="ap-ic">🚪</span>VANO</button>
+    <button class="ap-btn puerta" id="apPuerta"><span class="ap-ic">🚪</span>PUERTA</button>
+    <button class="ap-btn ventana" id="apVentana"><span class="ap-ic">🪟</span>VENTANA</button>
+    <button class="ap-btn rotate" id="apRotate"><span class="ap-ic">⟳</span>GIRAR</button>
     <button class="ap-btn type" id="apType"><span class="ap-ic">🧱</span>TIPO</button>
     <button class="ap-btn del" id="apDel"><span class="ap-ic">🗑</span>BORRAR</button>
   </div>
@@ -309,18 +314,20 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="tel-item"><span class="tel-k">RUM</span><span class="tel-v" id="tAng">090°</span></div>
   <div class="tel-item"><span class="tel-k">MUR</span><span class="tel-v ok" id="tSeg">0</span></div>
   <div class="tel-item"><span class="tel-k">LÍN</span><span class="tel-v vi" id="tLines">0</span></div>
-  <div class="tel-item"><span class="tel-k">VAN</span><span class="tel-v" id="tVanos" style="color:var(--wn)">0</span></div>
+  <div class="tel-item"><span class="tel-k">🚪</span><span class="tel-v puerta" id="tPuertas">0</span></div>
+  <div class="tel-item"><span class="tel-k">🪟</span><span class="tel-v ventana" id="tVentanas">0</span></div>
   <div class="tel-item"><span class="tel-k">TXT</span><span class="tel-v pk" id="tTxt">0</span></div>
-  <div class="tel-item"><span class="tel-k">ZOOM</span><span class="tel-v" id="tZoom">50</span><span class="tel-k">px/m</span></div>
+  <div class="tel-item"><span class="tel-k">ZOOM</span><span class="tel-v" id="tZoom">50</span></div>
 </div>
 
 <div class="toolbar" id="toolbar">
-  <button class="tool" id="toolWall" data-kind="wall" title="Muro"><span class="t-ic">🧱</span><span>MURO</span><span class="t-tag" id="toolWallTag">21 cm</span></button>
-  <button class="tool line-tool" id="toolLine" data-kind="line" title="Línea"><span class="t-ic">─</span><span>LÍNEA</span><span class="t-tag">SIMPLE</span></button>
-  <button class="tool" id="toolType" title="Tipo por defecto"><span class="t-ic">⇹</span><span>TIPO</span><span class="t-tag" id="toolTypeTag">21 cm</span></button>
+  <button class="tool" id="toolWall"><span class="t-ic">🧱</span><span>MURO</span><span class="t-tag" id="toolWallTag">21 cm</span></button>
+  <button class="tool line-tool" id="toolLine"><span class="t-ic">─</span><span>LÍNEA</span><span class="t-tag">SIMPLE</span></button>
+  <button class="tool puerta-tool" id="toolPuerta"><span class="t-ic">🚪</span><span>PUERTA</span><span class="t-tag">0.90 m</span></button>
+  <button class="tool ventana-tool" id="toolVentana"><span class="t-ic">🪟</span><span>VENTANA</span><span class="t-tag">1.20 m</span></button>
   <div class="tool-sep"></div>
-  <button class="tool action" id="toolVano" disabled title="Crear vano en el muro seleccionado"><span class="t-ic">🚪</span><span>CREAR VANO</span><span class="t-tag" id="toolVanoTag">Selecciona un muro</span></button>
-  <span class="hint" id="toolHint">Toca un segmento para acciones</span>
+  <button class="tool" id="toolType"><span class="t-ic">⇹</span><span>TIPO</span><span class="t-tag" id="toolTypeTag">21 cm</span></button>
+  <span class="hint" id="toolHint">Toca un segmento · o dibuja uno nuevo</span>
 </div>
 
 <div class="keypad" id="keypad">
@@ -360,6 +367,18 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="row"><button class="b-cancel" id="mCancel">Cancelar</button><button class="b-ok" id="mOk">Aplicar</button></div>
 </div>
 
+<div class="modal" id="projectModal">
+  <h3 id="pmTitle">Proyectos</h3>
+  <p id="pmDesc">Guardar y abrir proyectos</p>
+  <div class="proj-list" id="projList"></div>
+  <div class="row tight">
+    <button class="b-quick" id="pmSave">💾 Guardar actual</button>
+    <button class="b-quick" id="pmImport">📁 Importar archivo</button>
+  </div>
+  <input type="file" id="pmFileInput" accept=".glmcad,.json,application/json" style="display:none">
+  <div class="row"><button class="b-cancel" id="pmClose">Cerrar</button></div>
+</div>
+
 <div class="modal" id="textModal">
   <h3 id="tmTitle">Nuevo texto</h3><p id="tmDesc">Contenido y tamaño del texto</p>
   <label class="field-label">Contenido</label>
@@ -369,26 +388,30 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="row"><button class="b-cancel" id="tmCancel">Cancelar</button><button class="b-delete" id="tmDelete" style="display:none">Borrar</button><button class="b-ok" id="tmOk">Aplicar</button></div>
 </div>
 
-<div class="modal" id="vanoModal">
-  <h3 id="vmTitle">Añadir vano</h3><p id="vmDesc">Posición y ancho del vano</p>
-  <label class="field-label">Posición desde inicio del muro (m)</label>
-  <input type="text" inputmode="decimal" id="vmPos" value="0.00" autocomplete="off" spellcheck="false">
+<div class="modal" id="openingModal">
+  <h3 id="omTitle">Editar puerta</h3><p id="omDesc">—</p>
   <label class="field-label">Ancho (m)</label>
-  <input type="text" inputmode="decimal" id="vmWidth" value="0.90" autocomplete="off" spellcheck="false">
-  <div class="row tight">
-    <button class="b-quick" id="vmQuickStart">⇤ Inicio</button>
-    <button class="b-quick" id="vmQuickCenter">⊙ Centro</button>
-    <button class="b-quick" id="vmQuickEnd">⇥ Final</button>
+  <input type="text" inputmode="decimal" id="omWidth" value="0.90" autocomplete="off" spellcheck="false">
+  <div id="omHingeSection">
+    <label class="field-label">Apertura · bisagra</label>
+    <div class="hinge-tabs" id="omHingeTabs">
+      <button class="hinge-tab" data-hinge="left-in"><span class="ht-icon">↰</span><span>Izq</span></button>
+      <button class="hinge-tab" data-hinge="right-in"><span class="ht-icon">↱</span><span>Der</span></button>
+      <button class="hinge-tab" data-hinge="left-out"><span class="ht-icon">↲</span><span>Izq Ext</span></button>
+      <button class="hinge-tab" data-hinge="right-out"><span class="ht-icon">↳</span><span>Der Ext</span></button>
+    </div>
   </div>
-  <div class="row"><button class="b-cancel" id="vmCancel">Cancelar</button><button class="b-delete" id="vmDelete" style="display:none">Borrar</button><button class="b-ok" id="vmOk">Añadir</button></div>
+  <div class="row"><button class="b-cancel" id="omCancel">Cancelar</button><button class="b-delete" id="omDelete" style="display:none">Borrar</button><button class="b-ok" id="omOk">Aplicar</button></div>
 </div>
 
 <div class="modal" id="wallModal">
   <h3 id="wmTitle">Propiedades del segmento</h3><p id="wmDesc">—</p>
   <label class="field-label">Tipo de segmento</label>
-  <div class="kind-tabs" id="wmKindTabs">
+  <div class="kind-tabs" id="wmKindTabs" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="kind-tile" data-kind="line"><div class="k-thumb"><svg viewBox="0 0 64 24"><line x1="4" y1="12" x2="60" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="4" cy="12" r="2" fill="currentColor"/><circle cx="60" cy="12" r="2" fill="currentColor"/></svg></div><div class="k-label">─ Línea</div></div>
     <div class="kind-tile" data-kind="wall"><div class="k-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="7.5" width="56" height="9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="k-label">🧱 Muro</div></div>
+    <div class="kind-tile" data-kind="door"><div class="k-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="6" width="24" height="12" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M28,18 A12,12 0 0 1 40,6" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2,2"/></svg></div><div class="k-label">🚪 Puerta</div></div>
+    <div class="kind-tile" data-kind="window"><div class="k-thumb"><svg viewBox="0 0 64 24"><rect x="4" y="6" width="56" height="12" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="4" y1="12" x2="60" y2="12" stroke="currentColor" stroke-width="0.8"/></svg></div><div class="k-label">🪟 Ventana</div></div>
   </div>
   <div id="wallSections">
     <label class="field-label">Tipo de muro</label>
@@ -405,7 +428,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
       <button class="align-tab" data-align="exterior"><span class="at-icon">⊣</span><span>Exterior</span></button>
     </div>
   </div>
-  <div class="warn-box section-hidden" id="wmWarnVanos"><span class="warn-ic">⚠</span><span id="wmWarnTxt">Al convertir a línea se eliminarán los vanos.</span></div>
+  <div class="warn-box section-hidden" id="wmWarnVanos"><span class="warn-ic">⚠</span><span id="wmWarnTxt">—</span></div>
   <div class="row"><button class="b-cancel" id="wmCancel">Cancelar</button><button class="b-ok" id="wmOk">Aplicar</button></div>
 </div>
 
@@ -413,6 +436,8 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
   <div class="sheet-handle"></div>
   <div class="sheet-body">
     <h2>Ajustes</h2>
+    <h4>Proyecto</h4>
+    <div class="opt accent" id="optProject"><div class="opt-l"><div class="opt-ic">💾</div><div>Proyectos</div></div><div class="opt-r">›</div></div>
     <h4>Conexión</h4>
     <div class="opt" id="optBLE"><div class="opt-l"><div class="opt-ic">📡</div><div><div>Bosch GLM 120 C</div><div class="opt-sub" id="bleSub">Sin conectar</div></div></div><div class="opt-r" id="bleState">—</div></div>
     <h4>Sensores</h4>
@@ -420,7 +445,6 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
     <h4>Dibujo</h4>
     <div class="opt" id="optDefaultWallType"><div class="opt-l"><div class="opt-ic">⇹</div><div><div>Tipo de muro por defecto</div><div class="opt-sub">Para muros nuevos</div></div></div><div class="opt-val" id="defWallTypeVal">21 cm</div></div>
     <div class="opt" id="optDefaultAlign"><div class="opt-l"><div class="opt-ic">⊢</div><div><div>Alineación por defecto</div><div class="opt-sub" id="defAlignSub">Eje en el centro</div></div></div><div class="opt-val" id="defAlignVal">Centro</div></div>
-    <div class="opt" id="optDefaultVano"><div class="opt-l"><div class="opt-ic">🚪</div><div><div>Ancho vano por defecto</div><div class="opt-sub">Puerta / ventana</div></div></div><div class="opt-val" id="defVanoVal">0.90 m</div></div>
     <h4>Dibujo (precisión)</h4>
     <div class="opt" id="optSnap"><div class="opt-l"><div class="opt-ic">∠</div><div><div>Modo snap</div><div class="opt-sub" id="snapSub">Ortogonal 90°</div></div></div><div class="opt-val" id="snapVal">ORTO</div></div>
     <div class="opt" id="optGrid"><div class="opt-l"><div class="opt-ic">▦</div><div>Cuadrícula</div></div><div class="opt-val" id="gridVal">ON</div></div>
@@ -432,7 +456,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
     <div class="opt" id="optExtents"><div class="opt-l"><div class="opt-ic">⛶</div><div>Centrar en dibujo</div></div><div class="opt-r">›</div></div>
     <div class="opt" id="optReset"><div class="opt-l"><div class="opt-ic">↺</div><div>Resetear zoom</div></div><div class="opt-r">›</div></div>
     <h4>Exportar</h4>
-    <div class="opt" id="optDxf"><div class="opt-l"><div class="opt-ic">⬇</div><div><div>Guardar DXF</div><div class="opt-sub" id="dxfSub">0 muros · 0 líneas</div></div></div><div class="opt-r">›</div></div>
+    <div class="opt" id="optDxf"><div class="opt-l"><div class="opt-ic">⬇</div><div><div>Guardar DXF</div><div class="opt-sub" id="dxfSub">0 muros</div></div></div><div class="opt-r">›</div></div>
     <h4>Zona peligrosa</h4>
     <div class="opt danger" id="optClear"><div class="opt-l"><div class="opt-ic">🗑</div><div>Borrar todo el dibujo</div></div><div class="opt-r">›</div></div>
   </div>
@@ -442,7 +466,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 
 <script>
 /* ============================================================
-   GLM CAD Pro v8 — Mover segmentos + editar vértices con snap
+   GLM CAD Pro v9 — Proyectos + Puertas/Ventanas
    ============================================================ */
 
 const SERVICE_DATA = "02A6C0D0-0451-4000-B000-FB3210111989";
@@ -452,14 +476,18 @@ const ZOOM_MAX = 1e7;
 const POINTER_HIT_R = 44;
 const TEXT_DRAG_THRESHOLD = 6;
 const MOVE_DRAG_THRESHOLD = 4;
+const PROJECTS_KEY = 'glmcad:projects:v1';
+const PROJECT_EXT = '.glmcad';
 
 /* ============================================================
-   ▶ EXPORTADOR DXF (idéntico a la versión anterior)
+   ▶ EXPORTADOR DXF — incluye PUERTAS y VENTANAS
    ============================================================ */
 const DXFExporter = (() => {
   const DEFAULT_LAYERS = {
     MUROS:    { name: 'MUROS',    aci: 4 },
     LINEAS:   { name: 'LINEAS',   aci: 3 },
+    PUERTAS:  { name: 'PUERTAS',  aci: 5 },  // azul
+    VENTANAS: { name: 'VENTANAS', aci: 4 },  // cyan
     VANOS:    { name: 'VANOS',    aci: 1 },
     COTAS:    { name: 'COTAS',    aci: 2 },
     TEXTOS:   { name: 'TEXTOS',   aci: 6 },
@@ -475,14 +503,16 @@ const DXFExporter = (() => {
   const n4 = v => Number.isFinite(v) ? v.toFixed(4) : '0.0000';
   function sanitizeText(s) { return String(s || '').replace(/\r?\n/g, ' ').replace(/[\x00-\x1F]/g, '').slice(0, 250); }
   function isLine(w) { return w.kind === 'line'; }
+  function isOpening(w) { return w.kind === 'door' || w.kind === 'window'; }
   function getWallThickness(w, model, cfg) {
     if (isLine(w)) return 0;
+    if (isOpening(w)) return 0;  // handled separately
     const types = model.wallTypes || cfg.wallTypes;
     if (types) { const t = types[w.typeId]; if (t && Number.isFinite(t.thickness)) return t.thickness; }
     return cfg.fallbackWallThickness;
   }
   function getFaceOffsets(w, model, cfg) {
-    if (isLine(w)) return { o1: 0, o2: 0 };
+    if (isLine(w) || isOpening(w)) return { o1: 0, o2: 0 };
     const t = getWallThickness(w, model, cfg);
     const a = w.alignment || 'center';
     if (a === 'interior') return { o1: 0, o2: t };
@@ -531,40 +561,18 @@ const DXFExporter = (() => {
   function writeBlocks(w) { w('0\nSECTION\n2\nBLOCKS\n0\nENDSEC\n'); }
   function writeEntities(w, model, cfg, layers) {
     w('0\nSECTION\n2\nENTITIES\n');
-    _writeVertices(w, model, layers, cfg);
-    _writeSegments(w, model, layers, cfg);
+    _writeWalls(w, model, layers, cfg);
+    _writeLines(w, model, layers);
+    _writeOpenings(w, model, layers);
     _writeDimensions(w, model, cfg, layers);
     _writeUserTexts(w, model, layers);
     _writeAxes(w, cfg, layers);
     w('0\nENDSEC\n');
   }
-  function _writeVertices(w, model, layers, cfg) {
-    const seen = new Set();
-    const key = (x, y) => `${x.toFixed(4)}|${y.toFixed(4)}`;
-    const L = layers.VERTICES.name;
+  function _writeWalls(w, model, layers, cfg) {
+    const LM = layers.MUROS.name;
     for (const wl of model.walls || []) {
-      if (isLine(wl)) {
-        for (const p of [[wl.x1, wl.y1], [wl.x2, wl.y2]]) {
-          const k = key(p[0], p[1]);
-          if (!seen.has(k)) { seen.add(k); w(`0\nPOINT\n8\n${L}\n10\n${n4(p[0])}\n20\n${n4(p[1])}\n30\n0.0\n`); }
-        }
-        continue;
-      }
-      const { o1, o2 } = getFaceOffsets(wl, model, cfg);
-      for (const d of [0, wl.dist]) for (const o of [o1, o2]) {
-        const p = wallPointAt(wl, d, o);
-        const k = key(p.x, p.y);
-        if (!seen.has(k)) { seen.add(k); w(`0\nPOINT\n8\n${L}\n10\n${n4(p.x)}\n20\n${n4(p.y)}\n30\n0.0\n`); }
-      }
-    }
-  }
-  function _writeSegments(w, model, layers, cfg) {
-    const LM = layers.MUROS.name; const LL = layers.LINEAS.name; const LV = layers.VANOS.name;
-    for (const wl of model.walls || []) {
-      if (isLine(wl)) {
-        w(`0\nLINE\n8\n${LL}\n10\n${n4(wl.x1)}\n20\n${n4(wl.y1)}\n30\n0.0\n11\n${n4(wl.x2)}\n21\n${n4(wl.y2)}\n31\n0.0\n`);
-        continue;
-      }
+      if (isLine(wl) || isOpening(wl)) continue;
       const { o1, o2 } = getFaceOffsets(wl, model, cfg);
       const vanos = (wl.vanos || []).slice().sort((a, b) => a.d1 - b.d1);
       for (const o of [o1, o2]) {
@@ -576,12 +584,80 @@ const DXFExporter = (() => {
         if (cursor < wl.dist - 1e-6) { const A = wallPointAt(wl, cursor, o); const B = wallPointAt(wl, wl.dist, o); w(`0\nLINE\n8\n${LM}\n10\n${n4(A.x)}\n20\n${n4(A.y)}\n30\n0.0\n11\n${n4(B.x)}\n21\n${n4(B.y)}\n31\n0.0\n`); }
       }
       for (const d of [0, wl.dist]) { const A = wallPointAt(wl, d, o1); const B = wallPointAt(wl, d, o2); w(`0\nLINE\n8\n${LM}\n10\n${n4(A.x)}\n20\n${n4(A.y)}\n30\n0.0\n11\n${n4(B.x)}\n21\n${n4(B.y)}\n31\n0.0\n`); }
-      for (const v of vanos) for (const d of [v.d1, v.d2]) { const A = wallPointAt(wl, d, o1); const B = wallPointAt(wl, d, o2); w(`0\nLINE\n8\n${LV}\n10\n${n4(A.x)}\n20\n${n4(A.y)}\n30\n0.0\n11\n${n4(B.x)}\n21\n${n4(B.y)}\n31\n0.0\n`); }
+    }
+  }
+  function _writeLines(w, model, layers) {
+    const LL = layers.LINEAS.name;
+    for (const wl of model.walls || []) {
+      if (!isLine(wl)) continue;
+      w(`0\nLINE\n8\n${LL}\n10\n${n4(wl.x1)}\n20\n${n4(wl.y1)}\n30\n0.0\n11\n${n4(wl.x2)}\n21\n${n4(wl.y2)}\n31\n0.0\n`);
+    }
+  }
+  function _writeOpenings(w, model, layers) {
+    const LP = layers.PUERTAS.name;
+    const LV = layers.VENTANAS.name;
+    for (const wl of model.walls || []) {
+      if (!isOpening(wl)) continue;
+      const L = wl.kind === 'door' ? LP : LV;
+      const rad = wl.angle * Math.PI / 180;
+      const ux = Math.cos(rad), uy = Math.sin(rad);
+      const nx = -uy, ny = ux;
+      const T = wl.thickness || 0.21;
+      const t2 = T/2;
+      // 4 corners of the opening rectangle
+      const p1 = { x: wl.x1 + nx * t2, y: wl.y1 + ny * t2 };
+      const p2 = { x: wl.x2 + nx * t2, y: wl.y2 + ny * t2 };
+      const p3 = { x: wl.x2 - nx * t2, y: wl.y2 - ny * t2 };
+      const p4 = { x: wl.x1 - nx * t2, y: wl.y1 - ny * t2 };
+      // rectangle
+      w(`0\nLINE\n8\n${L}\n10\n${n4(p1.x)}\n20\n${n4(p1.y)}\n30\n0.0\n11\n${n4(p2.x)}\n21\n${n4(p2.y)}\n31\n0.0\n`);
+      w(`0\nLINE\n8\n${L}\n10\n${n4(p2.x)}\n20\n${n4(p2.y)}\n30\n0.0\n11\n${n4(p3.x)}\n21\n${n4(p3.y)}\n31\n0.0\n`);
+      w(`0\nLINE\n8\n${L}\n10\n${n4(p3.x)}\n20\n${n4(p3.y)}\n30\n0.0\n11\n${n4(p4.x)}\n21\n${n4(p4.y)}\n31\n0.0\n`);
+      w(`0\nLINE\n8\n${L}\n10\n${n4(p4.x)}\n20\n${n4(p4.y)}\n30\n0.0\n11\n${n4(p1.x)}\n21\n${n4(p1.y)}\n31\n0.0\n`);
+      // Para ventana: línea central (cristal)
+      if (wl.kind === 'window') {
+        const c1 = { x: wl.x1, y: wl.y1 };
+        const c2 = { x: wl.x2, y: wl.y2 };
+        w(`0\nLINE\n8\n${L}\n10\n${n4(c1.x)}\n20\n${n4(c1.y)}\n30\n0.0\n11\n${n4(c2.x)}\n21\n${n4(c2.y)}\n31\n0.0\n`);
+      }
+      // Para puerta: arco de giro (84°)
+      if (wl.kind === 'door') {
+        const hinge = wl.hinge || 'left-in';
+        // Determine hinge point and swing direction
+        const isLeft = hinge.startsWith('left');
+        const isOut = hinge.endsWith('out');
+        const hx = isLeft ? wl.x1 : wl.x2;
+        const hy = isLeft ? wl.y1 : wl.y2;
+        // Build arc
+        const segs = 10;
+        const startAng = Math.atan2(uy, ux) * (isLeft ? 1 : 1); // unused
+        const openingAng = 84 * Math.PI / 180;
+        // Arc: centro = bisagra, radio = wl.dist
+        let a0;
+        if (isLeft) a0 = Math.atan2(-ny, -nx); // dirección hacia adentro
+        else a0 = Math.atan2(-ny, -nx); // simplificado
+        const flip = isLeft ? 1 : -1;
+        // Simplificación: dibujamos un arco desde el eje (a0) hasta (a0 -/+) apertura
+        const swingDir = isOut ? -1 : 1;
+        const baseAng = Math.atan2(wl.y2 - hy, wl.x2 - hx) - (isLeft ? 0 : Math.PI);
+        let prev = null;
+        for (let i = 0; i <= segs; i++) {
+          const t = i / segs;
+          const ang = baseAng + swingDir * flip * openingAng * t;
+          const px = hx + Math.cos(ang) * wl.dist;
+          const py = hy + Math.sin(ang) * wl.dist;
+          if (prev) {
+            w(`0\nLINE\n8\n${L}\n10\n${n4(prev.x)}\n20\n${n4(prev.y)}\n30\n0.0\n11\n${n4(px)}\n21\n${n4(py)}\n31\n0.0\n`);
+          }
+          prev = { x: px, y: py };
+        }
+      }
     }
   }
   function _writeDimensions(w, model, cfg, layers) {
     const L = layers.COTAS.name;
     for (const wl of model.walls || []) {
+      if (!isLine(wl) && !(wl.kind === 'wall')) continue;
       const dx = wl.x2 - wl.x1, dy = wl.y2 - wl.y1;
       const len = Math.hypot(dx, dy); if (len < 1e-9) continue;
       const ux = dx / len, uy = dy / len;
@@ -639,6 +715,94 @@ const DXFExporter = (() => {
 })();
 
 /* ============================================================
+   ▶ PROYECTOS (localStorage + import/export archivo)
+   ============================================================ */
+const Projects = (() => {
+  function loadIndex() {
+    try {
+      const raw = localStorage.getItem(PROJECTS_KEY);
+      if (!raw) return {};
+      const obj = JSON.parse(raw);
+      return obj && typeof obj === 'object' ? obj : {};
+    } catch (_) { return {}; }
+  }
+  function saveIndex(idx) {
+    try { localStorage.setItem(PROJECTS_KEY, JSON.stringify(idx)); return true; }
+    catch (_) { return false; }
+  }
+  function list() {
+    const idx = loadIndex();
+    return Object.values(idx).sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  }
+  function get(id) {
+    const idx = loadIndex();
+    return idx[id] || null;
+  }
+  function save(name, data) {
+    const idx = loadIndex();
+    const id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const entry = {
+      id,
+      name: (name || 'Sin nombre').trim().slice(0, 60) || 'Sin nombre',
+      savedAt: Date.now(),
+      data,
+    };
+    idx[id] = entry;
+    if (!saveIndex(idx)) return null;
+    return entry;
+  }
+  function update(id, data, name) {
+    const idx = loadIndex();
+    if (!idx[id]) return null;
+    idx[id].data = data;
+    idx[id].savedAt = Date.now();
+    if (name) idx[id].name = name.trim().slice(0, 60);
+    if (!saveIndex(idx)) return null;
+    return idx[id];
+  }
+  function remove(id) {
+    const idx = loadIndex();
+    if (!idx[id]) return false;
+    delete idx[id];
+    return saveIndex(idx);
+  }
+  function importFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error);
+      reader.onload = () => {
+        try {
+          const text = String(reader.result || '');
+          const obj = JSON.parse(text);
+          if (!obj || typeof obj !== 'object') throw new Error('formato');
+          if (obj.format !== 'glmcad' || !obj.data) throw new Error('formato');
+          resolve(obj); // { format, name, data, savedAt }
+        } catch (e) { reject(e); }
+      };
+      reader.readAsText(file);
+    });
+  }
+  function downloadFile(name, data) {
+    const payload = {
+      format: 'glmcad',
+      version: 1,
+      name: name || 'proyecto',
+      savedAt: Date.now(),
+      data,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const fname = (name || 'PROYECTO').replace(/[^a-zA-Z0-9_\-\.]/g, '_').slice(0, 40) + PROJECT_EXT;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return fname;
+  }
+  return { list, get, save, update, remove, importFromFile, downloadFile };
+})();
+
+/* ============================================================
    ▶ ESTADO
    ============================================================ */
 const DEFAULT_WALL_TYPES = {
@@ -680,14 +844,8 @@ const S = {
   selPieceIdx: -1,
   editMode: 'idle',
   movingEnd: null,
-  // NUEVO: arrastre de segmento completo
-  draggingSegment: null,       // { wallIdx, orig: {x1,y1,x2,y2}, moved, startSx, startSy }
-  segDragMoved: false,
-  segDragSnap: null,           // { x, y } punto de anclaje con snap (mundo)
-  // NUEVO: edición de vértice libre (mover A o B sin restricción)
-  draggingVertex: null,        // { wallIdx, end: 'start' | 'end', moved }
-  vertexDragSnap: null,        // { x, y } posición con snap aplicado
-  // Texto
+  draggingSegment: null, segDragMoved: false, segDragSnap: null,
+  draggingVertex: null, vertexDragSnap: null,
   textMode: 'idle', pendingTextPos: null, editingTextIdx: -1, defaultTextSize: 0.25,
   draggingText: null, textDragMoved: false, textDragStart: null,
   dimMinScreenLen: 55,
@@ -695,14 +853,18 @@ const S = {
   currentWallTypeId: 'muro-21',
   currentAlignment: 'center',
   currentSegmentKind: 'wall',
-  defaultVanoWidth: 0.90,
-  vanoTargetWallIdx: -1, vanoTargetPieceIdx: -1, editingVanoIdx: -1,
-  editingWallIdx: -1, tempWallTypeId: null, tempAlignment: null, tempKind: null,
+  currentVanoWidth: 0.90,
+  // Opening modal
+  editingOpeningIdx: -1,
+  tempOpeningWidth: 0.90,
+  tempOpeningHinge: 'left-in',
+  // Project state
+  currentProjectId: null,
+  currentProjectName: null,
 };
 const INIT_SCALE = 50;
 const DIAL_R = 56;
 const VERTEX_R = 3;
-
 let hitTargets = [];
 const kp = { visible: false, pinned: false, mode: 'dist', value: '', editIdx: -1 };
 
@@ -714,27 +876,29 @@ const ui = {
   chipOrtho: $('chipOrtho'), chipSnap: $('chipSnap'), chipDims: $('chipDims'), chipText: $('chipText'),
   rose: $('rose'), needle: $('needle'), scalebar: $('scalebar'),
   tCoord: $('tCoord'), tDist: $('tDist'), tAng: $('tAng'), tSeg: $('tSeg'),
-  tLines: $('tLines'), tVanos: $('tVanos'), tTxt: $('tTxt'), tZoom: $('tZoom'),
+  tLines: $('tLines'), tPuertas: $('tPuertas'), tVentanas: $('tVentanas'), tTxt: $('tTxt'), tZoom: $('tZoom'),
   bUndo: $('bUndo'), bRedo: $('bRedo'), bAngle: $('bAngle'), bDist: $('bDist'),
   bText: $('bText'), bBase: $('bBase'), bClose: $('bClose'), bTerminar: $('bTerminar'),
   overlay: $('overlay'), modal: $('modal'), mTitle: $('mTitle'), mDesc: $('mDesc'),
   mInput: $('mInput'), mOk: $('mOk'), mCancel: $('mCancel'),
   textModal: $('textModal'), tmTitle: $('tmTitle'), tmDesc: $('tmDesc'),
   tmContent: $('tmContent'), tmSize: $('tmSize'), tmCancel: $('tmCancel'), tmDelete: $('tmDelete'), tmOk: $('tmOk'),
-  vanoModal: $('vanoModal'), vmTitle: $('vmTitle'), vmDesc: $('vmDesc'),
-  vmPos: $('vmPos'), vmWidth: $('vmWidth'),
-  vmQuickStart: $('vmQuickStart'), vmQuickCenter: $('vmQuickCenter'), vmQuickEnd: $('vmQuickEnd'),
-  vmCancel: $('vmCancel'), vmDelete: $('vmDelete'), vmOk: $('vmOk'),
+  openingModal: $('openingModal'), omTitle: $('omTitle'), omDesc: $('omDesc'),
+  omWidth: $('omWidth'), omHingeTabs: $('omHingeTabs'), omHingeSection: $('omHingeSection'),
+  omCancel: $('omCancel'), omDelete: $('omDelete'), omOk: $('omOk'),
   wallModal: $('wallModal'), wmTitle: $('wmTitle'), wmDesc: $('wmDesc'),
   wmKindTabs: $('wmKindTabs'), wmTypeGrid: $('wmTypeGrid'), wmAlignTabs: $('wmAlignTabs'),
   wmSections: $('wallSections'), wmWarnVanos: $('wmWarnVanos'), wmWarnTxt: $('wmWarnTxt'),
   wmCancel: $('wmCancel'), wmOk: $('wmOk'),
+  projectModal: $('projectModal'), pmTitle: $('pmTitle'), pmDesc: $('pmDesc'),
+  projList: $('projList'), pmSave: $('pmSave'), pmImport: $('pmImport'),
+  pmFileInput: $('pmFileInput'), pmClose: $('pmClose'),
   sheet: $('sheet'), toasts: $('toasts'),
+  optProject: $('optProject'),
   optBLE: $('optBLE'), bleSub: $('bleSub'), bleState: $('bleState'),
   optCompass: $('optCompass'), compState: $('compState'),
   optDefaultWallType: $('optDefaultWallType'), defWallTypeVal: $('defWallTypeVal'),
   optDefaultAlign: $('optDefaultAlign'), defAlignSub: $('defAlignSub'), defAlignVal: $('defAlignVal'),
-  optDefaultVano: $('optDefaultVano'), defVanoVal: $('defVanoVal'),
   optSnap: $('optSnap'), snapSub: $('snapSub'), snapVal: $('snapVal'),
   optGrid: $('optGrid'), gridVal: $('gridVal'),
   optDims: $('optDims'), dimsSub: $('dimsSub'), dimsVal: $('dimsVal'),
@@ -746,13 +910,14 @@ const ui = {
   keypad: $('keypad'), kpTag: $('kpTag'), kpDisplay: $('kpDisplay'),
   kpInput: $('kpInput'), kpUnit: $('kpUnit'), kpPin: $('kpPin'), kpClose: $('kpClose'),
   btnKpToggle: $('btnKpToggle'),
-  toolWall: $('toolWall'), toolLine: $('toolLine'), toolType: $('toolType'),
-  toolVano: $('toolVano'), toolWallTag: $('toolWallTag'),
-  toolTypeTag: $('toolTypeTag'), toolVanoTag: $('toolVanoTag'), toolHint: $('toolHint'),
-  // Actions panel
+  toolWall: $('toolWall'), toolLine: $('toolLine'),
+  toolPuerta: $('toolPuerta'), toolVentana: $('toolVentana'),
+  toolType: $('toolType'), toolWallTag: $('toolWallTag'),
+  toolTypeTag: $('toolTypeTag'), toolHint: $('toolHint'),
   actionsPanel: $('actionsPanel'),
-  apEdit: $('apEdit'), apMove: $('apMove'), apVano: $('apVano'),
-  apType: $('apType'), apDel: $('apDel'),
+  apEdit: $('apEdit'), apMove: $('apMove'),
+  apPuerta: $('apPuerta'), apVentana: $('apVentana'),
+  apRotate: $('apRotate'), apType: $('apType'), apDel: $('apDel'),
 };
 
 /* ============================================================
@@ -762,13 +927,19 @@ function w2s(wx, wy) { return { x: S.view.x + wx * S.view.s, y: S.view.y - wy * 
 function s2w(sx, sy) { return { x: (sx - S.view.x) / S.view.s, y: -(sy - S.view.y) / S.view.s }; }
 
 /* ============================================================
-   MUROS / LÍNEAS — helpers
+   MUROS / LÍNEAS / VANOS TIPO PUERTA / VENTANA
    ============================================================ */
 function isLine(w) { return w.kind === 'line'; }
+function isOpening(w) { return w.kind === 'door' || w.kind === 'window'; }
+function isWallKind(w) { return w.kind === 'wall' || !w.kind; }
 function getWallType(w) { return S.wallTypes[w.typeId] || S.wallTypes['muro-21']; }
-function getWallThickness(w) { return isLine(w) ? 0 : getWallType(w).thickness; }
+function getWallThickness(w) {
+  if (isLine(w)) return 0;
+  if (isOpening(w)) return w.thickness || 0.21;
+  return getWallType(w).thickness;
+}
 function getWallFaceOffsets(w) {
-  if (isLine(w)) return { o1: 0, o2: 0 };
+  if (isLine(w) || isOpening(w)) return { o1: 0, o2: 0 };
   const t = getWallThickness(w);
   if (w.alignment === 'interior') return { o1: 0, o2: t };
   if (w.alignment === 'exterior') return { o1: -t, o2: 0 };
@@ -781,6 +952,8 @@ function wallPointWorld(w, d, o) {
   return { x: w.x1 + ux * d + nx * o, y: w.y1 + uy * d + ny * o };
 }
 function getWallPieces(w) {
+  if (isOpening(w)) return [{ t1: 0, t2: w.dist }];
+  if (isLine(w)) return [{ t1: 0, t2: w.dist }];
   const vanos = (w.vanos || []).slice().sort((a, b) => a.d1 - b.d1);
   const pieces = [];
   let cursor = 0;
@@ -829,32 +1002,29 @@ function findWallPieceAt(sx, sy) {
     if (Math.abs(tP) > th) continue;
     const tM = tS / S.view.s;
     if (tM < -0.05 || tM > w.dist + 0.05) continue;
-    if (isLine(w)) {
-      if (Math.abs(tP) < bestAbsPerp) {
-        best = { wallIdx: i, pieceIdx: 0, vanoIdx: -1, inVano: false };
-        bestAbsPerp = Math.abs(tP);
-      }
-      continue;
-    }
-    const vanos = (w.vanos || []).slice().sort((a, b) => a.d1 - b.d1);
-    let inVano = false, vanoIdx = -1;
-    for (let j = 0; j < vanos.length; j++) {
-      if (tM >= vanos[j].d1 - 1e-6 && tM <= vanos[j].d2 + 1e-6) { inVano = true; vanoIdx = j; break; }
-    }
     if (Math.abs(tP) < bestAbsPerp) {
-      if (inVano) { best = { wallIdx: i, pieceIdx: -1, vanoIdx, inVano: true }; }
-      else {
-        const pieces = getWallPieces(w);
-        let pieceIdx = -1;
-        for (let k = 0; k < pieces.length; k++) {
-          if (tM >= pieces[k].t1 - 1e-6 && tM <= pieces[k].t2 + 1e-6) { pieceIdx = k; break; }
-        }
-        best = { wallIdx: i, pieceIdx, vanoIdx: -1, inVano: false };
-      }
+      best = { wallIdx: i, pieceIdx: 0, vanoIdx: -1, inVano: false };
       bestAbsPerp = Math.abs(tP);
     }
   }
   return best;
+}
+function findVertexHandleAt(sx, sy) {
+  if (S.editMode !== 'choose-point' || S.selWallIdx < 0) return null;
+  const w = S.lines[S.selWallIdx];
+  const pieces = getWallPieces(w);
+  const piece = pieces[S.selPieceIdx];
+  if (!piece) return null;
+  const fo = getWallFaceOffsets(w);
+  const mo = (fo.o1 + fo.o2) / 2;
+  const A = w2s(wallPointWorld(w, piece.t1, mo).x, wallPointWorld(w, piece.t1, mo).y);
+  const B = w2s(wallPointWorld(w, piece.t2, mo).x, wallPointWorld(w, piece.t2, mo).y);
+  const d1 = Math.hypot(sx - A.x, sy - A.y);
+  const d2 = Math.hypot(sx - B.x, sy - B.y);
+  const RAD = 42;
+  if (d1 < RAD && d1 <= d2) return 'start';
+  if (d2 < RAD) return 'end';
+  return null;
 }
 function getTextBounds(t) {
   const p = w2s(t.x, t.y);
@@ -875,24 +1045,6 @@ function findTextAt(sx, sy, padPx = 6) {
     }
   }
   return best;
-}
-/* NUEVO: hit test de vértices A/B de la pieza seleccionada en modo choose-point */
-function findVertexHandleAt(sx, sy) {
-  if (S.editMode !== 'choose-point' || S.selWallIdx < 0) return null;
-  const w = S.lines[S.selWallIdx];
-  const pieces = getWallPieces(w);
-  const piece = pieces[S.selPieceIdx];
-  if (!piece) return null;
-  const fo = getWallFaceOffsets(w);
-  const mo = (fo.o1 + fo.o2) / 2;
-  const A = w2s(wallPointWorld(w, piece.t1, mo).x, wallPointWorld(w, piece.t1, mo).y);
-  const B = w2s(wallPointWorld(w, piece.t2, mo).x, wallPointWorld(w, piece.t2, mo).y);
-  const d1 = Math.hypot(sx - A.x, sy - A.y);
-  const d2 = Math.hypot(sx - B.x, sy - B.y);
-  const RAD = 42;
-  if (d1 < RAD && d1 <= d2) return 'start';
-  if (d2 < RAD) return 'end';
-  return null;
 }
 
 /* ============================================================
@@ -921,8 +1073,6 @@ function snapToGrid(wx, wy) {
   const step = chooseGridStep();
   return { x: Math.round(wx / step) * step, y: Math.round(wy / step) * step };
 }
-/* NUEVO: snap combinado (vértice prioritario, luego rejilla, luego libre)
-   Devuelve { x, y, type: 'vertex' | 'grid' | 'free', vertex: {x,y} | null } */
 function computeSnap(sx, sy, excludeWallIdx = -1) {
   const vert = findNearestVertex(sx, sy, S.pickSnapPx, excludeWallIdx);
   if (vert) return { x: vert.x, y: vert.y, type: 'vertex', vertex: vert };
@@ -935,38 +1085,7 @@ function computeSnap(sx, sy, excludeWallIdx = -1) {
 }
 
 /* ============================================================
-   VANOS
-   ============================================================ */
-function wallHasVanoOverlap(wall, d1, d2, ignoreIdx = -1) {
-  for (let i = 0; i < (wall.vanos || []).length; i++) {
-    if (i === ignoreIdx) continue;
-    const v = wall.vanos[i];
-    if (!(d2 <= v.d1 + 1e-6 || d1 >= v.d2 - 1e-6)) return true;
-  }
-  return false;
-}
-function addVanoToWall(wallIdx, d1, width) {
-  const w = S.lines[wallIdx]; if (!w || isLine(w)) return false;
-  const W = Math.max(0.05, width);
-  let start = Math.max(0, Math.min(d1, w.dist - 0.05));
-  let end = Math.min(w.dist, start + W);
-  if (end - start < 0.05) start = Math.max(0, end - 0.05);
-  if (wallHasVanoOverlap(w, start, end)) { toast('Se superpone con otro vano', 'warn'); return false; }
-  if (!w.vanos) w.vanos = [];
-  w.vanos.push({ d1: start, d2: end });
-  w.vanos.sort((a, b) => a.d1 - b.d1);
-  S.redoStack.length = 0;
-  return true;
-}
-function deleteVano(wallIdx, vanoIdx) {
-  const w = S.lines[wallIdx];
-  if (!w || !w.vanos || !w.vanos[vanoIdx]) return;
-  w.vanos.splice(vanoIdx, 1);
-  S.redoStack.length = 0;
-}
-
-/* ============================================================
-   EDICIÓN
+   EDICIÓN DE SEGMENTOS
    ============================================================ */
 function recomputeWallMetrics(idx, oldDist = null) {
   const l = S.lines[idx]; if (!l) return;
@@ -984,72 +1103,26 @@ function recomputeWallMetrics(idx, oldDist = null) {
 }
 function editPieceDistance(wallIdx, pieceIdx, newSignedDist, movingEnd) {
   const w = S.lines[wallIdx]; if (!w) return;
-  const pieces = getWallPieces(w);
-  const piece = pieces[pieceIdx];
-  if (!piece) return;
   const newDist = Math.abs(newSignedDist);
   if (newDist < 0.02) { toast('Mínimo 2 cm', 'err'); return; }
+  // Simplificación: aplicar al vértice A o B directamente
   if (movingEnd === 'start') {
-    const newT1 = piece.t2 - newDist;
-    if (piece.t1 < 1e-6) {
-      const delta = newT1 - piece.t1;
-      if (w.dist - delta < 0.05) { toast('Muy corto', 'err'); return; }
-      const rad = w.angle * Math.PI / 180;
-      const cosA = Math.cos(rad), sinA = Math.sin(rad);
-      w.x1 += delta * cosA; w.y1 += delta * sinA;
-      w.dist -= delta;
-      if (w.vanos) for (const v of w.vanos) { v.d1 -= delta; v.d2 -= delta; }
-    } else {
-      const leftV = w.vanos.find(v => Math.abs(v.d2 - piece.t1) < 1e-6);
-      if (!leftV) return;
-      if (newT1 - leftV.d1 < 0.05) { toast('Vano muy estrecho', 'err'); return; }
-      if (newT1 > piece.t2 - 0.02) { toast('Pieza muy corta', 'err'); return; }
-      leftV.d2 = newT1;
-    }
+    const rad = w.angle * Math.PI / 180;
+    w.x1 = w.x2 - newDist * Math.cos(rad);
+    w.y1 = w.y2 - newDist * Math.sin(rad);
   } else {
-    const newT2 = piece.t1 + newDist;
-    if (piece.t2 >= w.dist - 1e-6) {
-      const delta = newT2 - piece.t2;
-      if (w.dist + delta < 0.05) { toast('Muy corto', 'err'); return; }
-      const rad = w.angle * Math.PI / 180;
-      const cosA = Math.cos(rad), sinA = Math.sin(rad);
-      w.x2 += delta * cosA; w.y2 += delta * sinA;
-      w.dist += delta;
-    } else {
-      const rightV = w.vanos.find(v => Math.abs(v.d1 - piece.t2) < 1e-6);
-      if (!rightV) return;
-      if (rightV.d2 - newT2 < 0.05) { toast('Vano muy estrecho', 'err'); return; }
-      if (newT2 < piece.t1 + 0.02) { toast('Pieza muy corta', 'err'); return; }
-      rightV.d1 = newT2;
+    const rad = w.angle * Math.PI / 180;
+    w.x2 = w.x1 + newDist * Math.cos(rad);
+    w.y2 = w.y1 + newDist * Math.sin(rad);
+    if (wallIdx === S.lines.length - 1) {
+      S.base = { x: w.x2, y: w.y2 };
+      S.lastDist = newDist;
     }
   }
+  recomputeWallMetrics(wallIdx, w.dist);
   S.redoStack.length = 0;
   updateUI(); render();
   toast(`Segmento → ${newDist.toFixed(3)}m`, 'ok');
-}
-function deletePiece(wallIdx, pieceIdx) {
-  const w = S.lines[wallIdx]; if (!w) return;
-  if (isLine(w)) { deleteWall(wallIdx); return; }
-  const pieces = getWallPieces(w);
-  const piece = pieces[pieceIdx];
-  if (!piece) return;
-  const startsAtWallStart = piece.t1 < 1e-6;
-  const endsAtWallEnd = piece.t2 >= w.dist - 1e-6;
-  if (startsAtWallStart && endsAtWallEnd) { deleteWall(wallIdx); return; }
-  const vanos = (w.vanos || []).slice().sort((a, b) => a.d1 - b.d1);
-  const leftV = !startsAtWallStart ? vanos.find(v => Math.abs(v.d2 - piece.t1) < 1e-6) : null;
-  const rightV = !endsAtWallEnd ? vanos.find(v => Math.abs(v.d1 - piece.t2) < 1e-6) : null;
-  if (startsAtWallStart && rightV) rightV.d1 = 0;
-  else if (endsAtWallEnd && leftV) leftV.d2 = w.dist;
-  else if (leftV && rightV) {
-    leftV.d2 = rightV.d2;
-    const i = w.vanos.indexOf(rightV);
-    if (i >= 0) w.vanos.splice(i, 1);
-  }
-  S.redoStack.length = 0;
-  S.selWallIdx = -1; S.selPieceIdx = -1; S.editMode = 'idle'; S.movingEnd = null;
-  updateUI(); render();
-  toast('Segmento eliminado', 'warn');
 }
 function deleteWall(idx) {
   if (idx < 0 || idx >= S.lines.length) return;
@@ -1070,22 +1143,89 @@ function deselectSegment() {
   S.draggingSegment = null; S.segDragMoved = false; S.segDragSnap = null;
   render();
 }
-
-/* ============================================================
-   NUEVO: mover un segmento completo con snap
-   ============================================================ */
 function moveSegmentBy(wallIdx, dxWorld, dyWorld) {
-  const w = S.lines[wallIdx];
-  if (!w) return;
+  const w = S.lines[wallIdx]; if (!w) return;
   w.x1 += dxWorld; w.y1 += dyWorld;
   w.x2 += dxWorld; w.y2 += dyWorld;
 }
-/* Aplica snap al segmento: busca el mejor ajuste posible de sus extremos
-   a vértices existentes (excluyendo los del propio segmento) o rejilla. */
+
+/* ============================================================
+   PUERTAS Y VENTANAS — creación
+   ============================================================ */
+function addOpeningAt(baseX, baseY, kind, width, angle) {
+  const W = Math.max(0.4, Math.min(3.0, width || (kind === 'door' ? 0.90 : 1.20)));
+  const rad = angle * Math.PI / 180;
+  const x2 = baseX + W * Math.cos(rad);
+  const y2 = baseY + W * Math.sin(rad);
+  S.lines.push({
+    x1: baseX, y1: baseY, x2, y2,
+    dist: W, angle,
+    kind,
+    thickness: 0.21,
+    hinge: kind === 'door' ? S.tempOpeningHinge || 'left-in' : null,
+    vanos: [],
+  });
+  S.redoStack.length = 0;
+  S.lastDist = W;
+  S.base = { x: x2, y: y2 };
+}
+function openOpeningModal(idx) {
+  const w = S.lines[idx]; if (!w || !isOpening(w)) return;
+  S.editingOpeningIdx = idx;
+  S.tempOpeningWidth = w.dist;
+  S.tempOpeningHinge = w.hinge || 'left-in';
+  const isDoor = w.kind === 'door';
+  ui.omTitle.textContent = isDoor ? 'Editar puerta' : 'Editar ventana';
+  ui.omDesc.textContent = `${isDoor ? 'Puerta' : 'Ventana'} · ${w.dist.toFixed(2)} m · ${(w.thickness || 0.21).toFixed(2)} m`;
+  ui.omWidth.value = w.dist.toFixed(3);
+  ui.omHingeSection.classList.toggle('section-hidden', !isDoor);
+  updateHingeTabs();
+  ui.omDelete.style.display = 'flex';
+  ui.omOk.textContent = 'Aplicar';
+  ui.overlay.classList.add('show'); ui.openingModal.classList.add('show');
+}
+function closeOpeningModal() {
+  ui.openingModal.classList.remove('show'); maybeCloseOverlay();
+  S.editingOpeningIdx = -1;
+}
+function updateHingeTabs() {
+  ui.omHingeTabs.querySelectorAll('.hinge-tab').forEach(t => {
+    t.classList.toggle('on', t.dataset.hinge === S.tempOpeningHinge);
+  });
+}
+ui.omHingeTabs.addEventListener('click', e => {
+  const tab = e.target.closest('.hinge-tab'); if (!tab) return;
+  S.tempOpeningHinge = tab.dataset.hinge;
+  updateHingeTabs();
+});
+ui.omCancel.onclick = () => { closeOpeningModal(); };
+ui.omDelete.onclick = () => {
+  const idx = S.editingOpeningIdx;
+  if (idx >= 0) { deleteWall(idx); }
+  closeOpeningModal();
+  toast('Abertura eliminada', 'warn');
+};
+ui.omOk.onclick = () => {
+  const idx = S.editingOpeningIdx;
+  const w = S.lines[idx]; if (!w) { closeOpeningModal(); return; }
+  const nw = parseFloat((ui.omWidth.value || '').replace(',', '.'));
+  if (!isFinite(nw) || nw < 0.3 || nw > 5) { toast('Ancho inválido (0.3–5.0)', 'err'); return; }
+  const rad = w.angle * Math.PI / 180;
+  w.x2 = w.x1 + nw * Math.cos(rad);
+  w.y2 = w.y1 + nw * Math.sin(rad);
+  w.dist = nw;
+  if (w.kind === 'door') w.hinge = S.tempOpeningHinge;
+  S.redoStack.length = 0;
+  closeOpeningModal();
+  updateUI(); render();
+  toast(`${w.kind === 'door' ? 'Puerta' : 'Ventana'} · ${nw.toFixed(2)} m`, 'ok');
+};
+
+/* ============================================================
+   MOVER VÉRTICES / SEGMENTO
+   ============================================================ */
 function applySegmentSnap(wallIdx, targetX, targetY) {
-  const w = S.lines[wallIdx];
-  if (!w) return null;
-  // Intentar ajustar según el vértice más cercano de OTROS segmentos
+  const w = S.lines[wallIdx]; if (!w) return null;
   let bestV = null, bestD = S.pickSnapPx;
   for (let i = 0; i < S.lines.length; i++) {
     if (i === wallIdx) continue;
@@ -1110,7 +1250,7 @@ function applySegmentSnap(wallIdx, targetX, targetY) {
    TEXTO
    ============================================================ */
 function startTextPlacement() {
-  deselectSegment(); cancelTextModalOnly(); closeVanoModal(); closeWallPropertiesModal();
+  deselectSegment(); cancelTextModalOnly(); closeOpeningModal(); closeWallPropertiesModal();
   if (kp.visible) kpHide();
   if (S.picking) { S.picking = false; S.pickSnap = null; ui.bBase.classList.remove('armed'); }
   S.textMode = 'placing'; S.pendingTextPos = null;
@@ -1122,8 +1262,11 @@ function leaveTextPlacing() { S.textMode = 'idle'; ui.chipText.style.display = '
 function cancelTextPlacement() { S.pendingTextPos = null; leaveTextPlacing(); render(); }
 function cancelTextModalOnly() { ui.textModal.classList.remove('show'); maybeCloseOverlay(); S.editingTextIdx = -1; }
 function maybeCloseOverlay() {
-  if (!ui.modal.classList.contains('show') && !ui.textModal.classList.contains('show') &&
-      !ui.vanoModal.classList.contains('show') && !ui.wallModal.classList.contains('show') &&
+  if (!ui.modal.classList.contains('show') &&
+      !ui.textModal.classList.contains('show') &&
+      !ui.openingModal.classList.contains('show') &&
+      !ui.wallModal.classList.contains('show') &&
+      !ui.projectModal.classList.contains('show') &&
       !ui.sheet.classList.contains('show')) ui.overlay.classList.remove('show');
 }
 function openTextModal({ edit = false, idx = -1 } = {}) {
@@ -1174,42 +1317,38 @@ function kpClearInput() { kp.value = ''; ui.kpInput.value = ''; }
 function kpOpen(mode, editIdx = -1) {
   kp.mode = mode; kp.editIdx = editIdx; kp.visible = true;
   ui.keypad.classList.remove('edit'); ui.kpDisplay.classList.remove('edit');
-  ui.kpTag.classList.remove('move');
+  ui.kpTag.classList.remove('move'); ui.kpTag.classList.remove('opening');
   if (mode === 'angle') {
     ui.kpTag.textContent = 'ÁNGULO'; ui.kpTag.className = 'kp-tag angle'; ui.kpUnit.textContent = '°'; kpClearInput();
-  } else if (mode === 'edit-dist') {
+  } else if (mode === 'edit-dist' || mode === 'vertex-move') {
     const w = S.lines[editIdx];
-    const pieces = w ? getWallPieces(w) : [];
-    const p = pieces[S.selPieceIdx];
+    const kindLabel = w ? (isLine(w) ? 'LÍN' : (isOpening(w) ? (w.kind === 'door' ? '🚪' : '🪟') : 'MURO')) : 'SEG';
     const endLabel = S.movingEnd === 'start' ? 'A' : 'B';
-    const segLen = p ? (p.t2 - p.t1) : 0;
-    const kindLabel = w ? (isLine(w) ? 'LÍN' : 'MURO') : 'SEG';
-    ui.kpTag.textContent = `${kindLabel} ${S.selPieceIdx + 1} · PTO ${endLabel}`;
+    const segLen = w ? w.dist : 0;
+    ui.kpTag.textContent = `${kindLabel} · ${endLabel}`;
     ui.kpTag.className = 'kp-tag edit'; ui.kpUnit.textContent = 'm';
     kp.value = segLen.toFixed(3); ui.kpInput.value = kp.value;
     ui.keypad.classList.add('edit'); ui.kpDisplay.classList.add('edit');
-  } else if (mode === 'vertex-move') {
-    // NUEVO: editar longitud del vértice seleccionado
+  } else if (mode === 'opening-width') {
     const w = S.lines[editIdx];
-    const pieces = w ? getWallPieces(w) : [];
-    const p = pieces[S.selPieceIdx];
-    const endLabel = S.movingEnd === 'start' ? 'A' : 'B';
-    const segLen = p ? (p.t2 - p.t1) : 0;
-    ui.kpTag.textContent = `VERT ${endLabel} · long`;
-    ui.kpTag.className = 'kp-tag move'; ui.kpUnit.textContent = 'm';
-    kp.value = segLen.toFixed(3); ui.kpInput.value = kp.value;
+    ui.kpTag.textContent = w && w.kind === 'door' ? '🚪 ANCHO' : '🪟 ANCHO';
+    ui.kpTag.className = 'kp-tag opening'; ui.kpUnit.textContent = 'm';
+    kp.value = w ? w.dist.toFixed(3) : '';
+    ui.kpInput.value = kp.value;
     ui.keypad.classList.add('edit'); ui.kpDisplay.classList.add('edit');
   } else {
-    const kindLabel = S.currentSegmentKind === 'line' ? 'LÍNEA' : 'MURO';
-    ui.kpTag.textContent = kindLabel; ui.kpTag.className = 'kp-tag dist';
-    ui.kpUnit.textContent = 'm'; kpClearInput();
+    // Dist para NUEVA abertura
+    ui.kpTag.textContent = S.currentSegmentKind === 'door' ? '🚪 ANCHO PUERTA' : (S.currentSegmentKind === 'window' ? '🪟 ANCHO VENTANA' : (S.currentSegmentKind === 'line' ? 'LÍNEA' : 'MURO'));
+    ui.kpTag.className = 'kp-tag dist';
+    ui.kpUnit.textContent = 'm';
+    kpClearInput();
   }
   ui.keypad.classList.add('show');
   document.body.classList.add('kp-open');
   updateUI();
 }
 function kpHide() {
-  const wasEdit = kp.mode === 'edit-dist' || kp.mode === 'vertex-move';
+  const wasEdit = kp.mode === 'edit-dist' || kp.mode === 'vertex-move' || kp.mode === 'opening-width';
   ui.keypad.classList.remove('show'); ui.keypad.classList.remove('edit'); ui.kpDisplay.classList.remove('edit');
   document.body.classList.remove('kp-open');
   kp.visible = false; kp.editIdx = -1; kpClearInput();
@@ -1240,14 +1379,26 @@ function kpConfirm() {
   if (kp.mode === 'angle') { setAngle(val, true); toast(`Ángulo ${applySnap(val).toFixed(0)}°`, 'ok'); kpClearInput(); if (!kp.pinned) kpHide(); return; }
   if (kp.mode === 'edit-dist' || kp.mode === 'vertex-move') {
     if (Math.abs(val) < 1e-9) { toast('Valor no puede ser 0', 'err'); return; }
-    const wIdx = kp.editIdx;
-    editPieceDistance(wIdx, S.selPieceIdx, val, S.movingEnd);
+    editPieceDistance(kp.editIdx, 0, val, S.movingEnd);
     S.selWallIdx = -1; S.selPieceIdx = -1; S.editMode = 'idle'; S.movingEnd = null;
-    S.draggingVertex = null; S.vertexDragSnap = null;
+    kpClearInput(); kpHide(); return;
+  }
+  if (kp.mode === 'opening-width') {
+    if (val < 0.3 || val > 5) { toast('Rango 0.3–5.0 m', 'err'); return; }
+    const w = S.lines[kp.editIdx];
+    if (w) {
+      const rad = w.angle * Math.PI / 180;
+      w.x2 = w.x1 + val * Math.cos(rad);
+      w.y2 = w.y1 + val * Math.sin(rad);
+      w.dist = val;
+      S.redoStack.length = 0;
+      toast(`${w.kind === 'door' ? 'Puerta' : 'Ventana'} → ${val.toFixed(2)} m`, 'ok');
+    }
     kpClearInput(); kpHide(); return;
   }
   if (Math.abs(val) < 1e-9) { toast('Valor no puede ser 0', 'err'); return; }
-  commitSegment(val); kpClearInput();
+  commitSegment(val);
+  kpClearInput();
   if (!kp.pinned) kpHide();
 }
 ui.keypad.addEventListener('click', e => { const btn = e.target.closest('[data-k]'); if (!btn) return; e.preventDefault(); kpPress(btn.dataset.k); });
@@ -1265,84 +1416,6 @@ document.addEventListener('keydown', e => {
 });
 
 /* ============================================================
-   MODAL VANOS
-   ============================================================ */
-function openVanoModal(wallIdx, vanoIdx = -1, pieceIdx = -1) {
-  const w = S.lines[wallIdx]; if (!w || isLine(w)) return;
-  S.vanoTargetWallIdx = wallIdx; S.editingVanoIdx = vanoIdx; S.vanoTargetPieceIdx = pieceIdx;
-  const isEdit = vanoIdx >= 0;
-  let defaultPos = 0, defaultWidth = S.defaultVanoWidth;
-  let minPos = 0, maxPos = w.dist;
-  if (isEdit && w.vanos && w.vanos[vanoIdx]) {
-    const v = w.vanos[vanoIdx]; defaultPos = v.d1; defaultWidth = v.d2 - v.d1;
-  } else if (pieceIdx >= 0) {
-    const pieces = getWallPieces(w);
-    const piece = pieces[pieceIdx];
-    if (piece) {
-      minPos = piece.t1; maxPos = piece.t2;
-      const range = maxPos - minPos;
-      const ww = Math.min(S.defaultVanoWidth, range - 0.05);
-      if (range > ww + 0.1) defaultPos = minPos + (range - ww) / 2;
-      else { defaultPos = minPos; defaultWidth = Math.max(0.05, ww); }
-    }
-  } else {
-    const ww = S.defaultVanoWidth;
-    if (w.dist > ww + 0.1) defaultPos = (w.dist - ww) / 2;
-    else { defaultPos = 0; defaultWidth = Math.min(ww, w.dist); }
-  }
-  ui.vmTitle.textContent = isEdit ? 'Editar vano' : 'Añadir vano';
-  ui.vmDesc.textContent = `Tramo ${minPos.toFixed(2)} – ${maxPos.toFixed(2)} m · ${getWallType(w).name}`;
-  ui.vmPos.value = defaultPos.toFixed(3); ui.vmWidth.value = defaultWidth.toFixed(3);
-  ui.vmDelete.style.display = isEdit ? 'flex' : 'none';
-  ui.vmOk.textContent = isEdit ? 'Aplicar' : 'Añadir';
-  ui.overlay.classList.add('show'); ui.vanoModal.classList.add('show');
-  setTimeout(() => { ui.vmPos.focus(); ui.vmPos.select(); }, 140);
-}
-function closeVanoModal() { ui.vanoModal.classList.remove('show'); maybeCloseOverlay(); S.vanoTargetWallIdx = -1; S.vanoTargetPieceIdx = -1; S.editingVanoIdx = -1; }
-ui.vmQuickStart.onclick = () => { ui.vmPos.value = '0.000'; ui.vmPos.focus(); ui.vmPos.select(); };
-ui.vmQuickCenter.onclick = () => {
-  const w = S.lines[S.vanoTargetWallIdx]; if (!w) return;
-  const width = parseFloat((ui.vmWidth.value || S.defaultVanoWidth).replace(',', '.')) || S.defaultVanoWidth;
-  ui.vmPos.value = Math.max(0, (w.dist - width) / 2).toFixed(3); ui.vmPos.focus(); ui.vmPos.select();
-};
-ui.vmQuickEnd.onclick = () => {
-  const w = S.lines[S.vanoTargetWallIdx]; if (!w) return;
-  const width = parseFloat((ui.vmWidth.value || S.defaultVanoWidth).replace(',', '.')) || S.defaultVanoWidth;
-  ui.vmPos.value = Math.max(0, w.dist - width).toFixed(3); ui.vmPos.focus(); ui.vmPos.select();
-};
-ui.vmCancel.onclick = () => { closeVanoModal(); };
-ui.vmDelete.onclick = () => {
-  const idx = S.vanoTargetWallIdx, vIdx = S.editingVanoIdx;
-  if (idx >= 0 && vIdx >= 0) { deleteVano(idx, vIdx); toast('Vano eliminado', 'warn'); }
-  closeVanoModal(); updateUI(); render();
-};
-ui.vmOk.onclick = () => {
-  const idx = S.vanoTargetWallIdx, vIdx = S.editingVanoIdx;
-  const w = S.lines[idx]; if (!w) { closeVanoModal(); return; }
-  const pos = parseFloat((ui.vmPos.value || '0').replace(',', '.'));
-  const width = parseFloat((ui.vmWidth.value || String(S.defaultVanoWidth)).replace(',', '.'));
-  if (!isFinite(pos) || !isFinite(width) || width <= 0.05) { toast('Valores inválidos', 'err'); return; }
-  if (vIdx >= 0) {
-    const W = Math.max(0.05, width);
-    let start = Math.max(0, Math.min(pos, w.dist - 0.05));
-    let end = Math.min(w.dist, start + W);
-    if (end - start < 0.05) start = Math.max(0, end - 0.05);
-    if (wallHasVanoOverlap(w, start, end, vIdx)) { toast('Se superpone con otro vano', 'err'); return; }
-    const ref = w.vanos[vIdx]; ref.d1 = start; ref.d2 = end;
-    w.vanos.sort((a, b) => a.d1 - b.d1);
-    S.redoStack.length = 0;
-    toast(`Vano editado · ${(end - start).toFixed(2)}m`, 'ok');
-  } else {
-    if (!addVanoToWall(idx, pos, width)) return;
-    toast(`Vano añadido · ${width.toFixed(2)}m`, 'ok');
-    if (width > 0.05) S.defaultVanoWidth = width;
-  }
-  closeVanoModal(); updateUI(); render();
-};
-ui.vmPos.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ui.vmWidth.focus(); ui.vmWidth.select(); } if (e.key === 'Escape') { e.preventDefault(); ui.vmCancel.click(); } });
-ui.vmWidth.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ui.vmOk.click(); } if (e.key === 'Escape') { e.preventDefault(); ui.vmCancel.click(); } });
-
-/* ============================================================
    MODAL PROPIEDADES
    ============================================================ */
 function openWallPropertiesModal(wallIdx) {
@@ -1351,11 +1424,9 @@ function openWallPropertiesModal(wallIdx) {
   S.tempWallTypeId = w.typeId || S.currentWallTypeId;
   S.tempAlignment = w.alignment || S.currentAlignment;
   S.tempKind = w.kind || 'wall';
-  const vanoCount = (w.vanos || []).length;
-  const pieceCount = getWallPieces(w).length;
-  const kindLabel = isLine(w) ? 'Línea' : 'Muro';
+  const kindLabel = isLine(w) ? 'Línea' : (w.kind === 'door' ? 'Puerta' : (w.kind === 'window' ? 'Ventana' : 'Muro'));
   ui.wmTitle.textContent = 'Propiedades del segmento';
-  ui.wmDesc.textContent = `${kindLabel} · ${w.dist.toFixed(3)} m${!isLine(w) ? ' · ' + pieceCount + ' seg' + (vanoCount ? ' · ' + vanoCount + ' vano(s)' : '') : ''}`;
+  ui.wmDesc.textContent = `${kindLabel} · ${w.dist.toFixed(3)} m`;
   ui.wmOk.dataset.mode = '';
   updateWallTypeTiles(); updateAlignTabs(); updateKindTiles();
   updateSectionsVisibility();
@@ -1371,6 +1442,8 @@ function updateKindTiles() {
     const on = t.dataset.kind === S.tempKind;
     t.classList.toggle('on', on);
     t.classList.toggle('line-tile', on && t.dataset.kind === 'line');
+    t.classList.toggle('puerta-tile', on && t.dataset.kind === 'door');
+    t.classList.toggle('ventana-tile', on && t.dataset.kind === 'window');
   });
 }
 function updateWallTypeTiles() {
@@ -1384,10 +1457,10 @@ function updateSectionsVisibility() {
   ui.wmSections.classList.toggle('section-hidden', !isWall);
   const w = S.editingWallIdx >= 0 ? S.lines[S.editingWallIdx] : null;
   const hasVanos = w && w.vanos && w.vanos.length > 0;
-  const willConvertToLine = !isWall && w && !isLine(w);
+  const willConvertToLine = !isWall && w && !isLine(w) && w.kind !== 'door' && w.kind !== 'window';
   if (hasVanos && willConvertToLine) {
     ui.wmWarnVanos.classList.remove('section-hidden');
-    ui.wmWarnTxt.textContent = `Al convertir a línea se eliminarán ${w.vanos.length} vano(s).`;
+    ui.wmWarnTxt.textContent = `Al convertir se eliminarán ${w.vanos.length} vano(s).`;
   } else {
     ui.wmWarnVanos.classList.add('section-hidden');
   }
@@ -1411,115 +1484,201 @@ ui.wmOk.onclick = () => {
     if (S.tempKind) S.currentSegmentKind = S.tempKind;
     if (S.tempWallTypeId && S.tempKind === 'wall') S.currentWallTypeId = S.tempWallTypeId;
     if (S.tempAlignment && S.tempKind === 'wall') S.currentAlignment = S.tempAlignment;
-    closeWallPropertiesModal();
-    updateUI(); render();
-    const kindLbl = S.currentSegmentKind === 'line' ? 'Línea' : 'Muro';
-    const extra = S.currentSegmentKind === 'wall' ? ` · ${S.wallTypes[S.currentWallTypeId].name} · ${ALIGN_LABELS[S.currentAlignment]}` : '';
-    toast(`Por defecto: ${kindLbl}${extra}`, 'ok');
+    closeWallPropertiesModal(); updateUI(); render();
+    const kindLbl = S.currentSegmentKind === 'line' ? 'Línea' : (S.currentSegmentKind === 'door' ? 'Puerta' : (S.currentSegmentKind === 'window' ? 'Ventana' : 'Muro'));
+    toast(`Por defecto: ${kindLbl}`, 'ok');
     return;
   }
   const idx = S.editingWallIdx;
   const w = S.lines[idx];
   if (!w) { closeWallPropertiesModal(); return; }
   const kindChanged = S.tempKind && S.tempKind !== (w.kind || 'wall');
-  const typeChanged = S.tempKind === 'wall' && S.tempWallTypeId && S.tempWallTypeId !== w.typeId;
-  const alignChanged = S.tempKind === 'wall' && S.tempAlignment && S.tempAlignment !== w.alignment;
   if (kindChanged) {
-    if (S.tempKind === 'line') {
-      const vanoCount = (w.vanos || []).length;
-      w.kind = 'line'; w.vanos = [];
-      if (vanoCount > 0) toast(`Convertido a línea · ${vanoCount} vano(s) eliminados`, 'vi');
-      else toast('Convertido a línea', 'vi');
-    } else {
+    if (S.tempKind === 'line') { w.kind = 'line'; w.vanos = []; toast('Convertido a línea', 'vi'); }
+    else if (S.tempKind === 'wall') {
       w.kind = 'wall';
       if (S.tempWallTypeId) w.typeId = S.tempWallTypeId;
       if (S.tempAlignment) w.alignment = S.tempAlignment;
       if (!w.vanos) w.vanos = [];
       toast(`Convertido a muro · ${getWallType(w).name}`, 'ok');
     }
+    else if (S.tempKind === 'door') { w.kind = 'door'; w.hinge = w.hinge || 'left-in'; toast('Convertido a puerta', 'puerta'); }
+    else if (S.tempKind === 'window') { w.kind = 'window'; toast('Convertido a ventana', 'ventana'); }
     S.currentSegmentKind = S.tempKind;
-    if (S.tempKind === 'wall') {
-      if (S.tempWallTypeId) S.currentWallTypeId = S.tempWallTypeId;
-      if (S.tempAlignment) S.currentAlignment = S.tempAlignment;
-    }
-  } else {
-    if (typeChanged) { w.typeId = S.tempWallTypeId; S.currentWallTypeId = S.tempWallTypeId; }
-    if (alignChanged) { w.alignment = S.tempAlignment; S.currentAlignment = S.tempAlignment; }
-    if (typeChanged || alignChanged) {
-      const msg = [];
-      if (typeChanged) msg.push(getWallType(w).name);
-      if (alignChanged) msg.push(ALIGN_LABELS[w.alignment]);
-      toast(`Segmento: ${msg.join(' · ')}`, 'ok');
-    }
   }
   S.redoStack.length = 0;
   closeWallPropertiesModal(); updateUI(); render();
 };
 
 /* ============================================================
-   EDITORES DE COTAS
+   PROYECTOS — UI
    ============================================================ */
-function openWallLengthEditor(wallIdx) {
-  const w = S.lines[wallIdx]; if (!w) return;
-  const kindLabel = isLine(w) ? 'Línea' : getWallType(w).name;
-  const extra = isLine(w) ? '' : ` · eje ${ALIGN_LABELS[w.alignment || 'center']}`;
-  openModal({
-    title: 'Longitud del segmento', desc: `${kindLabel}${extra}`,
-    def: w.dist.toFixed(3), type: 'number',
-    cb: v => {
-      const n = parseFloat(String(v).replace(',', '.'));
-      if (!isNaN(n) && n > 0.02) {
-        const oldDist = w.dist;
-        const rad = w.angle * Math.PI / 180;
-        w.x2 = w.x1 + n * Math.cos(rad);
-        w.y2 = w.y1 + n * Math.sin(rad);
-        recomputeWallMetrics(wallIdx, oldDist);
-        S.redoStack.length = 0; updateUI(); render();
-        toast(`Segmento → ${n.toFixed(3)}m`, 'ok');
-      } else if (!isNaN(n)) toast('Debe ser > 0.02 m', 'err');
-    }
-  });
+function openProjectModal() {
+  renderProjectList();
+  ui.overlay.classList.add('show');
+  ui.projectModal.classList.add('show');
 }
-function openVanoWidthEditor(wallIdx, vanoIdx) {
-  const w = S.lines[wallIdx]; if (!w || !w.vanos || !w.vanos[vanoIdx]) return;
-  const v = w.vanos[vanoIdx];
-  openModal({
-    title: 'Ancho del vano', desc: 'Ancho en metros (se mantiene el centro)',
-    def: (v.d2 - v.d1).toFixed(3), type: 'number',
-    cb: val => {
-      const n = parseFloat(String(val).replace(',', '.'));
-      if (isNaN(n) || n <= 0.05) { toast('Valor inválido', 'err'); return; }
-      const center = (v.d1 + v.d2) / 2;
-      let newStart = Math.max(0, center - n / 2);
-      let newEnd = Math.min(w.dist, newStart + n);
-      if (newEnd - newStart < n - 1e-6) newStart = Math.max(0, newEnd - n);
-      if (wallHasVanoOverlap(w, newStart, newEnd, vanoIdx)) { toast('Se superpone con otro vano', 'err'); return; }
-      v.d1 = newStart; v.d2 = newEnd;
-      w.vanos.sort((a, b) => a.d1 - b.d1);
-      S.redoStack.length = 0;
-      toast(`Ancho vano → ${n.toFixed(2)}m`, 'ok'); updateUI(); render();
-    }
-  });
+function closeProjectModal() {
+  ui.projectModal.classList.remove('show'); maybeCloseOverlay();
 }
-function openVanoPositionEditor(wallIdx, vanoIdx) {
-  const w = S.lines[wallIdx]; if (!w || !w.vanos || !w.vanos[vanoIdx]) return;
-  const v = w.vanos[vanoIdx];
-  openModal({
-    title: 'Posición del vano', desc: 'Distancia desde inicio del muro al inicio del vano',
-    def: v.d1.toFixed(3), type: 'number',
-    cb: val => {
-      const n = parseFloat(String(val).replace(',', '.'));
-      if (isNaN(n) || n < 0) { toast('Valor inválido', 'err'); return; }
-      const W = v.d2 - v.d1;
-      let newStart = Math.max(0, Math.min(n, w.dist - W - 1e-6));
-      const newEnd = Math.min(w.dist, newStart + W);
-      if (wallHasVanoOverlap(w, newStart, newEnd, vanoIdx)) { toast('Se superpone con otro vano', 'err'); return; }
-      v.d1 = newStart; v.d2 = newEnd;
-      w.vanos.sort((a, b) => a.d1 - b.d1);
-      S.redoStack.length = 0;
-      toast(`Posición vano → ${n.toFixed(2)}m`, 'ok'); updateUI(); render();
+function renderProjectList() {
+  const list = Projects.list();
+  const container = ui.projList;
+  container.innerHTML = '';
+  if (!list.length) {
+    const empty = document.createElement('div');
+    empty.className = 'proj-empty';
+    empty.innerHTML = 'No hay proyectos guardados.<br>Guarda el actual o importa un archivo .glmcad';
+    container.appendChild(empty);
+    return;
+  }
+  for (const p of list) {
+    const item = document.createElement('div');
+    item.className = 'proj-item';
+    const main = document.createElement('div');
+    main.className = 'proj-item-main';
+    const name = document.createElement('div');
+    name.className = 'proj-item-name';
+    name.textContent = p.name;
+    const sub = document.createElement('div');
+    sub.className = 'proj-item-sub';
+    const d = new Date(p.savedAt || Date.now());
+    const stats = p.data && Array.isArray(p.data.lines) ? `${p.data.lines.length} seg` : '—';
+    sub.textContent = `${stats} · ${d.toLocaleString()}`;
+    main.appendChild(name); main.appendChild(sub);
+    const del = document.createElement('div');
+    del.className = 'proj-item-del';
+    del.innerHTML = '🗑';
+    del.title = 'Eliminar';
+    del.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (!confirm(`¿Eliminar el proyecto "${p.name}"?`)) return;
+      if (Projects.remove(p.id)) { toast('Proyecto eliminado', 'warn'); renderProjectList(); }
+      else toast('No se pudo eliminar', 'err');
+    });
+    item.appendChild(main);
+    item.appendChild(del);
+    item.addEventListener('click', () => {
+      const entry = Projects.get(p.id);
+      if (!entry) { toast('No encontrado', 'err'); return; }
+      applyProjectData(entry.data, entry.name, entry.id);
+      closeProjectModal();
+      toast(`Proyecto abierto: ${entry.name}`, 'ok');
+    });
+    container.appendChild(item);
+  }
+}
+ui.pmClose.onclick = () => { closeProjectModal(); };
+ui.pmSave.onclick = () => {
+  const suggested = S.currentProjectName || `Proyecto ${new Date().toLocaleDateString()}`;
+  const name = prompt('Nombre del proyecto:', suggested);
+  if (name === null) return;
+  const trimmed = (name || '').trim();
+  if (!trimmed) { toast('Nombre vacío', 'err'); return; }
+  const data = serializeProject();
+  if (S.currentProjectId) {
+    const updated = Projects.update(S.currentProjectId, data, trimmed);
+    if (updated) {
+      S.currentProjectName = trimmed;
+      toast(`Proyecto actualizado: ${trimmed}`, 'ok');
+    } else {
+      // fallback: guardar como nuevo
+      const entry = Projects.save(trimmed, data);
+      if (entry) { S.currentProjectId = entry.id; S.currentProjectName = entry.name; toast(`Guardado como: ${trimmed}`, 'ok'); }
+      else toast('No se pudo guardar (almacenamiento lleno)', 'err');
     }
-  });
+  } else {
+    const entry = Projects.save(trimmed, data);
+    if (entry) { S.currentProjectId = entry.id; S.currentProjectName = entry.name; toast(`Guardado: ${trimmed}`, 'ok'); }
+    else toast('No se pudo guardar (almacenamiento lleno)', 'err');
+  }
+  renderProjectList();
+};
+ui.pmImport.onclick = () => { ui.pmFileInput.click(); };
+ui.pmFileInput.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const obj = await Projects.importFromFile(file);
+    applyProjectData(obj.data, obj.name || file.name, null);
+    closeProjectModal();
+    toast(`Importado: ${obj.name || file.name}`, 'ok');
+  } catch (err) {
+    console.error(err);
+    toast('Archivo inválido', 'err');
+  }
+});
+ui.optProject.onclick = () => { closeSheet(); setTimeout(openProjectModal, 200); };
+ui.btnProject = $('btnProject');
+ui.btnProject.onclick = openProjectModal;
+
+/* Serialización / aplicación */
+function serializeProject() {
+  return {
+    lines: S.lines.map(l => ({
+      x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2,
+      dist: l.dist, angle: l.angle,
+      kind: l.kind || 'wall',
+      typeId: l.typeId || null,
+      alignment: l.alignment || null,
+      thickness: l.thickness || null,
+      hinge: l.hinge || null,
+      vanos: (l.vanos || []).map(v => ({ d1: v.d1, d2: v.d2 })),
+    })),
+    texts: S.texts.map(t => ({ x: t.x, y: t.y, content: t.content, size: t.size, angle: t.angle || 0 })),
+    base: { x: S.base.x, y: S.base.y },
+    angle: S.angle,
+    snapMode: S.snapMode,
+    dimMode: S.dimMode,
+    wallTypes: { ...S.wallTypes },
+    currentWallTypeId: S.currentWallTypeId,
+    currentAlignment: S.currentAlignment,
+    currentSegmentKind: S.currentSegmentKind,
+    defaultTextSize: S.defaultTextSize,
+    currentVanoWidth: S.currentVanoWidth,
+  };
+}
+function applyProjectData(data, name, id) {
+  if (!data || typeof data !== 'object') return;
+  S.lines = Array.isArray(data.lines) ? data.lines.map(l => ({
+    x1: +l.x1, y1: +l.y1, x2: +l.x2, y2: +l.y2,
+    dist: +l.dist, angle: +l.angle,
+    kind: l.kind || 'wall',
+    typeId: l.typeId || null,
+    alignment: l.alignment || null,
+    thickness: l.thickness || null,
+    hinge: l.hinge || null,
+    vanos: Array.isArray(l.vanos) ? l.vanos.map(v => ({ d1: +v.d1, d2: +v.d2 })) : [],
+  })) : [];
+  S.texts = Array.isArray(data.texts) ? data.texts.map(t => ({
+    x: +t.x, y: +t.y, content: String(t.content || ''), size: +t.size || 0.25, angle: +t.angle || 0,
+  })) : [];
+  S.base = data.base ? { x: +data.base.x, y: +data.base.y } : { x: 0, y: 0 };
+  S.angle = +data.angle || 90;
+  S.snapMode = data.snapMode || 'ortho';
+  S.dimMode = data.dimMode || 'auto';
+  S.wallTypes = data.wallTypes ? { ...DEFAULT_WALL_TYPES, ...data.wallTypes } : { ...DEFAULT_WALL_TYPES };
+  S.currentWallTypeId = data.currentWallTypeId || 'muro-21';
+  S.currentAlignment = data.currentAlignment || 'center';
+  S.currentSegmentKind = data.currentSegmentKind || 'wall';
+  S.defaultTextSize = +data.defaultTextSize || 0.25;
+  S.currentVanoWidth = +data.currentVanoWidth || 0.90;
+  S.currentProjectId = id || null;
+  S.currentProjectName = name || null;
+  S.redoStack.length = 0;
+  S.selWallIdx = -1; S.selPieceIdx = -1; S.editMode = 'idle'; S.movingEnd = null;
+  S.draggingSegment = null; S.draggingVertex = null; S.draggingText = null;
+  updateUI();
+  zoomExtents();
+  updateStatTxt();
+}
+function updateStatTxt() {
+  if (S.currentProjectName) {
+    ui.stat.textContent = S.currentProjectName.toUpperCase().slice(0, 22);
+  } else {
+    ui.stat.textContent = '—';
+  }
 }
 
 /* ============================================================
@@ -1531,6 +1690,8 @@ function addHitTarget(x, y, w, h, action, payload) { hitTargets.push({ x, y, w, 
 
 function drawSegment(w, idx, isActive) {
   if (isLine(w)) { drawLineSegment(w, idx, isActive); return; }
+  if (w.kind === 'door') { drawDoorSegment(w, idx, isActive); return; }
+  if (w.kind === 'window') { drawWindowSegment(w, idx, isActive); return; }
   drawWallSegment(w, idx, isActive);
 }
 function drawLineSegment(w, idx, isActive) {
@@ -1551,6 +1712,177 @@ function drawLineSegment(w, idx, isActive) {
   ctx.beginPath(); ctx.arc(p1.x, p1.y, VERTEX_R + (isSelPiece || isDragging ? 2 : 0), 0, 7); ctx.fill();
   ctx.beginPath(); ctx.arc(p2.x, p2.y, VERTEX_R + (isSelPiece || isDragging ? 2 : 0), 0, 7); ctx.fill();
 }
+
+/* ============================================================
+   PUERTA — dibujo tipo: marco rectangular + arco de giro + hoja
+   ============================================================ */
+function drawDoorSegment(w, idx, isActive) {
+  const p1 = w2s(w.x1, w.y1);
+  const p2 = w2s(w.x2, w.y2);
+  const isSelWall = (S.selWallIdx === idx);
+  const isSelPiece = isSelWall && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'moving');
+  const isDragging = S.draggingSegment && S.draggingSegment.wallIdx === idx;
+
+  const rad = w.angle * Math.PI / 180;
+  const ux = Math.cos(rad), uy = Math.sin(rad);
+  const nx = -uy, ny = ux;
+  const T = w.thickness || 0.21;
+  const t2 = T / 2;
+
+  const at = (d, o) => w2s(w.x1 + ux * d + nx * o, w.y1 + uy * d + ny * o);
+  const A1 = at(0, +t2), A2 = at(w.dist, +t2);
+  const B1 = at(0, -t2), B2 = at(w.dist, -t2);
+
+  const color = isDragging ? '#fbbf24' : (isSelPiece ? '#22c55e' : (isActive ? '#60a5fa' : '#3b82f6'));
+  const glow = isDragging ? 'rgba(251,191,36,.85)' : (isSelPiece ? 'rgba(34,197,94,.85)' : 'rgba(96,165,250,.5)');
+  const fill = isDragging ? 'rgba(251,191,36,.22)' : (isSelPiece ? 'rgba(34,197,94,.2)' : 'rgba(96,165,250,.14)');
+
+  // Relleno rectangular (marco)
+  ctx.save();
+  ctx.shadowColor = glow; ctx.shadowBlur = isDragging || isSelPiece ? 14 : 8;
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(A1.x, A1.y); ctx.lineTo(A2.x, A2.y);
+  ctx.lineTo(B2.x, B2.y); ctx.lineTo(B1.x, B1.y);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Marco (rectángulo de 4 líneas)
+  ctx.strokeStyle = color; ctx.lineWidth = isSelPiece || isDragging ? 2.4 : 1.8;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(A1.x, A1.y); ctx.lineTo(A2.x, A2.y);
+  ctx.lineTo(B2.x, B2.y); ctx.lineTo(B1.x, B1.y);
+  ctx.closePath(); ctx.stroke();
+
+  // Interior: hueco (línea gris tenue que muestra que es abertura)
+  ctx.strokeStyle = 'rgba(255,255,255,.18)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(w2s(w.x1, w.y1).x, w2s(w.x1, w.y1).y);
+  ctx.lineTo(w2s(w.x2, w.y2).x, w2s(w.x2, w.y2).y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Hoja de la puerta + arco de apertura
+  const hinge = w.hinge || 'left-in';
+  const isLeft = hinge.startsWith('left');
+  const isOut = hinge.endsWith('out');
+  const hx = isLeft ? w.x1 : w.x2;
+  const hy = isLeft ? w.y1 : w.y2;
+
+  // Ángulo base: dirección del muro desde la bisagra (hacia el otro extremo)
+  const baseAng = isLeft ? Math.atan2(w.y2 - w.y1, w.x2 - w.x1) : Math.atan2(w.y1 - w.y2, w.x1 - w.x2);
+  // Apertura: hacia el lado interior (in) o exterior (out)
+  // n es perpendicular izquierdo; "in" mira hacia -n, "out" hacia +n
+  const sideSign = isOut ? +1 : -1;
+  // Para bisagra izquierda abrimos hacia +90°, para derecha hacia -90° (relativo al baseAng)
+  const openSign = isLeft ? -1 : +1;
+  const openAng = 84 * Math.PI / 180;
+
+  // Punta de la hoja (donde está el tirador)
+  const leafAng = baseAng + sideSign * openSign * openAng;
+  const leafLen = w.dist;
+  const tipX = hx + Math.cos(leafAng) * leafLen;
+  const tipY = hy + Math.sin(leafAng) * leafLen;
+
+  // Hoja (línea gruesa)
+  const hS = w2s(hx, hy), tS = w2s(tipX, tipY);
+  ctx.strokeStyle = color; ctx.lineWidth = isSelPiece || isDragging ? 3.5 : 2.8;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(hS.x, hS.y); ctx.lineTo(tS.x, tS.y); ctx.stroke();
+
+  // Arco de apertura
+  ctx.strokeStyle = isSelPiece || isDragging ? color : 'rgba(96,165,250,.75)';
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([3, 3]);
+  const segs = 16;
+  ctx.beginPath();
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs;
+    const ang = baseAng + sideSign * openSign * openAng * t;
+    const px = hx + Math.cos(ang) * leafLen;
+    const py = hy + Math.sin(ang) * leafLen;
+    const sp = w2s(px, py);
+    if (i === 0) ctx.moveTo(sp.x, sp.y);
+    else ctx.lineTo(sp.x, sp.y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Punto de bisagra
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(hS.x, hS.y, 4, 0, 7); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(hS.x, hS.y, 1.8, 0, 7); ctx.fill();
+}
+
+/* ============================================================
+   VENTANA — marco rectangular + cristal central
+   ============================================================ */
+function drawWindowSegment(w, idx, isActive) {
+  const p1 = w2s(w.x1, w.y1);
+  const p2 = w2s(w.x2, w.y2);
+  const isSelWall = (S.selWallIdx === idx);
+  const isSelPiece = isSelWall && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'moving');
+  const isDragging = S.draggingSegment && S.draggingSegment.wallIdx === idx;
+
+  const rad = w.angle * Math.PI / 180;
+  const ux = Math.cos(rad), uy = Math.sin(rad);
+  const nx = -uy, ny = ux;
+  const T = w.thickness || 0.21;
+  const t2 = T / 2;
+
+  const at = (d, o) => w2s(w.x1 + ux * d + nx * o, w.y1 + uy * d + ny * o);
+  const A1 = at(0, +t2), A2 = at(w.dist, +t2);
+  const B1 = at(0, -t2), B2 = at(w.dist, -t2);
+  const mid1 = at(0, 0), mid2 = at(w.dist, 0);
+
+  const color = isDragging ? '#fbbf24' : (isSelPiece ? '#22c55e' : (isActive ? '#22d3ee' : '#0891b2'));
+  const glow = isDragging ? 'rgba(251,191,36,.85)' : (isSelPiece ? 'rgba(34,197,94,.85)' : 'rgba(34,211,238,.5)');
+  const fill = isDragging ? 'rgba(251,191,36,.22)' : (isSelPiece ? 'rgba(34,197,94,.2)' : 'rgba(34,211,238,.14)');
+
+  // Relleno rectangular
+  ctx.save();
+  ctx.shadowColor = glow; ctx.shadowBlur = isDragging || isSelPiece ? 14 : 8;
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(A1.x, A1.y); ctx.lineTo(A2.x, A2.y);
+  ctx.lineTo(B2.x, B2.y); ctx.lineTo(B1.x, B1.y);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Marco (rectángulo)
+  ctx.strokeStyle = color; ctx.lineWidth = isSelPiece || isDragging ? 2.4 : 1.8;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(A1.x, A1.y); ctx.lineTo(A2.x, A2.y);
+  ctx.lineTo(B2.x, B2.y); ctx.lineTo(B1.x, B1.y);
+  ctx.closePath(); ctx.stroke();
+
+  // Cristal: línea central (con doble línea para efecto vidrio)
+  ctx.strokeStyle = color;
+  ctx.lineWidth = isSelPiece || isDragging ? 2 : 1.4;
+  ctx.beginPath();
+  ctx.moveTo(mid1.x, mid1.y); ctx.lineTo(mid2.x, mid2.y);
+  ctx.stroke();
+
+  // Brillo paralelo tenue
+  ctx.strokeStyle = isSelPiece || isDragging ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.22)';
+  ctx.lineWidth = 1;
+  const b1 = at(0, +t2 * 0.45);
+  const b2 = at(w.dist, +t2 * 0.45);
+  ctx.beginPath();
+  ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y);
+  ctx.stroke();
+  const c1 = at(0, -t2 * 0.45);
+  const c2 = at(w.dist, -t2 * 0.45);
+  ctx.beginPath();
+  ctx.moveTo(c1.x, c1.y); ctx.lineTo(c2.x, c2.y);
+  ctx.stroke();
+}
+
 function drawWallSegment(w, idx, isActive) {
   const { o1, o2 } = getWallFaceOffsets(w);
   const at = (d, o) => { const p = wallPointWorld(w, d, o); return w2s(p.x, p.y); };
@@ -1613,37 +1945,6 @@ function drawWallSegment(w, idx, isActive) {
         ctx.fillText(label, C.x, C.y + .5);
         ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
         addHitTarget(lx, ly, tw, th, 'edit-vano-width', { wallIdx: idx, vanoIdx: realIdx });
-      } else if (wpx > 14 && thpx > 6) {
-        ctx.font = `${Math.min(13, Math.max(9, wpx * 0.35))}px -apple-system,system-ui,sans-serif`;
-        ctx.fillStyle = 'rgba(252,217,154,.85)';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('🚪', C.x, C.y);
-        ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
-      }
-      if (v.d1 > 0.2) {
-        const posMid = at(v.d1 / 2, (o1 + o2) / 2);
-        const posLabel = `${v.d1.toFixed(2)}`;
-        ctx.font = '700 10px "SF Mono","JetBrains Mono",Consolas,monospace';
-        const ptw = ctx.measureText(posLabel).width + 10;
-        const pth = 16;
-        const plx = posMid.x - ptw / 2, ply = posMid.y - pth / 2;
-        if (v.d1 * S.view.s > ptw + 12) {
-          ctx.fillStyle = 'rgba(8,8,10,.75)'; ctx.strokeStyle = 'rgba(167,139,250,.75)'; ctx.lineWidth = 1;
-          roundRect(plx, ply, ptw, pth, 8); ctx.fill(); ctx.stroke();
-          ctx.fillStyle = '#c4b5fd'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(posLabel, posMid.x, posMid.y + .5);
-          ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
-          addHitTarget(plx, ply, ptw, pth, 'edit-vano-position', { wallIdx: idx, vanoIdx: realIdx });
-        }
-      }
-    } else {
-      if (wpx > 20 && thpx > 8 && S.view.s > 4) {
-        ctx.save();
-        ctx.font = `${Math.min(13, Math.max(9, wpx * 0.28))}px -apple-system,system-ui,sans-serif`;
-        ctx.fillStyle = 'rgba(252,217,154,.6)';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('🚪', C.x, C.y);
-        ctx.restore();
       }
     }
   }
@@ -1662,11 +1963,6 @@ function drawWallSegment(w, idx, isActive) {
     ctx.moveTo(A1.x, A1.y); ctx.lineTo(A2.x, A2.y); ctx.lineTo(B2.x, B2.y); ctx.lineTo(B1.x, B1.y); ctx.closePath();
     ctx.fill(); ctx.stroke();
     ctx.shadowBlur = 0;
-    ctx.fillStyle = '#86efac';
-    const PA = at(selPiece.t1, (o1 + o2) / 2);
-    const PB = at(selPiece.t2, (o1 + o2) / 2);
-    ctx.beginPath(); ctx.arc(PA.x, PA.y, 4, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.arc(PB.x, PB.y, 4, 0, 7); ctx.fill();
     ctx.restore();
   }
 }
@@ -1684,11 +1980,12 @@ function paint() {
     const isSelWall = (S.selWallIdx === i);
     drawSegment(l, i, isActive);
     if (r > 12 && S.dimMode !== 'off') {
-      const pieces = isLine(l) ? [{ t1: 0, t2: l.dist }] : getWallPieces(l);
+      const pieces = getWallPieces(l);
       for (let k = 0; k < pieces.length; k++) {
         const p = pieces[k];
         const segLen = p.t2 - p.t1;
         if (segLen < 1e-6) continue;
+        if (isOpening(l)) continue;  // No cota para aberturas
         const fo = getWallFaceOffsets(l);
         const mo = (fo.o1 + fo.o2) / 2;
         const mid = (p.t1 + p.t2) / 2;
@@ -1741,8 +2038,6 @@ function paint() {
   ctx.moveTo(bp.x, bp.y - 7); ctx.lineTo(bp.x, bp.y - 3);
   ctx.moveTo(bp.x, bp.y + 3); ctx.lineTo(bp.x, bp.y + 7);
   ctx.stroke();
-
-  // Snap visual del arrastre de segmento o vértice
   if (S.segDragSnap && S.segDragSnap.vertex) {
     const sp = w2s(S.segDragSnap.vertex.x, S.segDragSnap.vertex.y);
     const t = (performance.now() / 900) % 1;
@@ -1750,14 +2045,6 @@ function paint() {
     ctx.beginPath(); ctx.arc(sp.x, sp.y, 12 + t * 5, 0, 7); ctx.stroke();
     ctx.fillStyle = 'rgba(34,197,94,.9)';
     ctx.beginPath(); ctx.arc(sp.x, sp.y, 5, 0, 7); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 2, 0, 7); ctx.fill();
-    ctx.font = '700 10px "SF Mono",monospace';
-    const lbl = 'SNAP'; const lw2 = ctx.measureText(lbl).width + 10;
-    ctx.fillStyle = 'rgba(8,8,10,.9)'; ctx.strokeStyle = 'rgba(34,197,94,.8)'; ctx.lineWidth = 1;
-    roundRect(sp.x + 14, sp.y - 9, lw2, 18, 9); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#86efac'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(lbl, sp.x + 14 + lw2 / 2, sp.y + .5);
-    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     render();
   }
   if (S.vertexDragSnap && S.vertexDragSnap.vertex) {
@@ -1767,23 +2054,13 @@ function paint() {
     ctx.beginPath(); ctx.arc(sp.x, sp.y, 12 + t * 5, 0, 7); ctx.stroke();
     ctx.fillStyle = 'rgba(34,197,94,.9)';
     ctx.beginPath(); ctx.arc(sp.x, sp.y, 5, 0, 7); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 2, 0, 7); ctx.fill();
     render();
   }
-
   drawEditUI();
   if (S.textMode === 'placing') {
     const t = (performance.now() / 900) % 1;
     ctx.strokeStyle = `rgba(244,114,182,${0.9 - t * 0.5})`; ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.arc(bp.x, bp.y, 20 + t * 14, 0, 7); ctx.stroke();
-    ctx.font = '700 10px "SF Mono",monospace';
-    const lbl = 'TEXTO';
-    const lw2 = ctx.measureText(lbl).width + 12;
-    ctx.fillStyle = 'rgba(8,8,10,.9)'; ctx.strokeStyle = 'rgba(244,114,182,.85)'; ctx.lineWidth = 1;
-    roundRect(bp.x + 20, bp.y - 10, lw2, 20, 10); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#fbcfe8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(lbl, bp.x + 20 + lw2 / 2, bp.y + .5);
-    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     render();
   }
   if (S.picking) {
@@ -1791,32 +2068,11 @@ function paint() {
       const sp = w2s(v.x, v.y);
       ctx.strokeStyle = 'rgba(34,211,238,.5)'; ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.arc(sp.x, sp.y, 7, 0, 7); ctx.stroke();
-      ctx.fillStyle = 'rgba(34,211,238,.25)';
-      ctx.beginPath(); ctx.arc(sp.x, sp.y, 4, 0, 7); ctx.fill();
-    }
-    if (S.pickSnap) {
-      const sp = w2s(S.pickSnap.x, S.pickSnap.y);
-      const t = (performance.now() / 900) % 1;
-      ctx.strokeStyle = 'rgba(34,197,94,.95)'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(sp.x, sp.y, 11 + t * 5, 0, 7); ctx.stroke();
-      ctx.fillStyle = 'rgba(34,197,94,.9)';
-      ctx.beginPath(); ctx.arc(sp.x, sp.y, 5, 0, 7); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 2, 0, 7); ctx.fill();
-      ctx.font = '700 10px "SF Mono",monospace';
-      const lbl = 'SNAP'; const lw2 = ctx.measureText(lbl).width + 10;
-      ctx.fillStyle = 'rgba(8,8,10,.9)'; ctx.strokeStyle = 'rgba(34,197,94,.8)'; ctx.lineWidth = 1;
-      roundRect(sp.x + 14, sp.y - 9, lw2, 18, 9); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#86efac'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(lbl, sp.x + 14 + lw2 / 2, sp.y + .5);
-      ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     }
     ctx.strokeStyle = S.draggingPointer ? 'rgba(34,197,94,.95)' : 'rgba(34,211,238,.9)';
     ctx.lineWidth = S.draggingPointer ? 2.5 : 2;
     const tt = (performance.now() / 1000) % 1.4;
     ctx.beginPath(); ctx.arc(bp.x, bp.y, 12 + tt * 12, 0, 7); ctx.stroke();
-    const gripR = 22;
-    ctx.strokeStyle = 'rgba(34,211,238,.35)'; ctx.lineWidth = 1;
-    ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.arc(bp.x, bp.y, gripR, 0, 7); ctx.stroke(); ctx.setLineDash([]);
     render();
   }
   if (S.editMode === 'choose-point' || S.editMode === 'moving') render();
@@ -1843,18 +2099,10 @@ function drawTexts() {
     ctx.fillStyle = isDragging ? '#fbcfe8' : '#f9a8d4';
     ctx.fillText(t.content, p.x, p.y);
     ctx.restore();
-    if (isDragging) {
-      const tt = (performance.now() / 700) % 1;
-      ctx.strokeStyle = `rgba(244,114,182,${0.9 - tt * 0.6})`; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 12 + tt * 8, 0, 7); ctx.stroke();
-      ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, 7); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, 7); ctx.fill();
-      render();
-    }
+    if (isDragging) render();
   }
 }
 function drawEditUI() {
-  // NUEVO: en modo choose-point se dibujan A/B grandes y arrastrables
   if (S.editMode === 'choose-point' && S.selWallIdx >= 0) {
     const w = S.lines[S.selWallIdx];
     const pieces = getWallPieces(w);
@@ -2006,13 +2254,15 @@ function drawPointer(cx, cy) {
   const isDial = S.draggingDial;
   const isFree = S.draggingPointer;
   const isTextMode = S.textMode === 'placing';
-  const isLineKind = S.currentSegmentKind === 'line';
-  let color = isDial ? '#22c55e' : (isFree ? '#22d3ee' : (isLineKind ? '#a78bfa' : '#f59e0b'));
+  let color = isDial ? '#22c55e' : (isFree ? '#22d3ee' : '#f59e0b');
+  if (S.currentSegmentKind === 'line') color = '#a78bfa';
+  else if (S.currentSegmentKind === 'door') color = '#60a5fa';
+  else if (S.currentSegmentKind === 'window') color = '#22d3ee';
   if (isTextMode) color = '#f472b6';
   const rad = S.angle * Math.PI / 180;
   const arrowLen = 46, tail = 12, headLen = 14, headAng = Math.PI / 5.5;
   const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 34);
-  grad.addColorStop(0, isTextMode ? 'rgba(244,114,182,.28)' : (isDial ? 'rgba(34,197,94,.22)' : (isFree ? 'rgba(34,211,238,.28)' : (isLineKind ? 'rgba(167,139,250,.24)' : 'rgba(245,158,11,.18)'))));
+  grad.addColorStop(0, 'rgba(245,158,11,.18)');
   grad.addColorStop(1, 'rgba(245,158,11,0)');
   ctx.fillStyle = grad;
   ctx.beginPath(); ctx.arc(cx, cy, 34, 0, 7); ctx.fill();
@@ -2049,7 +2299,7 @@ function drawUCS() {
 }
 
 /* ============================================================
-   DIBUJO — alta precisión
+   DIBUJO — precisión
    ============================================================ */
 function applySnap(deg) {
   deg = ((deg % 360) + 360) % 360;
@@ -2069,17 +2319,24 @@ function commitSegment(dist) {
   const rad = actualAngle * Math.PI / 180;
   const tx = S.base.x + actualDist * Math.cos(rad);
   const ty = S.base.y + actualDist * Math.sin(rad);
-  S.lines.push({
+  const kind = S.currentSegmentKind;
+  const entry = {
     x1: S.base.x, y1: S.base.y, x2: tx, y2: ty,
     dist: actualDist, angle: actualAngle,
-    kind: S.currentSegmentKind, typeId: S.currentWallTypeId,
+    kind: kind, typeId: S.currentWallTypeId,
     alignment: S.currentAlignment, vanos: [],
-  });
+  };
+  if (kind === 'door') { entry.thickness = 0.21; entry.hinge = 'left-in'; }
+  if (kind === 'window') { entry.thickness = 0.21; }
+  S.lines.push(entry);
   S.base = { x: tx, y: ty };
   if (kp.visible && kp.mode === 'dist') kpClearInput();
   ensureBaseVisible(); updateUI(); render();
   const sign = dist < 0 ? '−' : '+';
-  const kindLbl = S.currentSegmentKind === 'line' ? 'LÍN' : (S.wallTypes[S.currentWallTypeId] ? S.wallTypes[S.currentWallTypeId].name : 'MURO');
+  let kindLbl = 'MURO';
+  if (kind === 'line') kindLbl = 'LÍN';
+  else if (kind === 'door') kindLbl = '🚪 PUERTA';
+  else if (kind === 'window') kindLbl = '🪟 VENTANA';
   toast(`${sign}${actualDist.toFixed(3)}m · ${kindLbl}`, 'ok');
 }
 function undo() {
@@ -2108,10 +2365,11 @@ function closePolygon() {
   if (d < 0.005) { toast('Ya está cerrado', 'warn'); return; }
   const ang = (Math.atan2(o.y - S.base.y, o.x - S.base.x) * 180 / Math.PI + 360) % 360;
   S.redoStack.length = 0;
+  const kind = S.currentSegmentKind === 'door' || S.currentSegmentKind === 'window' ? 'wall' : S.currentSegmentKind;
   S.lines.push({
     x1: S.base.x, y1: S.base.y, x2: o.x, y2: o.y,
     dist: d, angle: ang,
-    kind: S.currentSegmentKind, typeId: S.currentWallTypeId,
+    kind, typeId: S.currentWallTypeId,
     alignment: S.currentAlignment, vanos: [],
   });
   S.base = { x: o.x, y: o.y }; S.polylineStart = S.lines.length;
@@ -2151,7 +2409,7 @@ function zoomExtents() {
   }
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const w of S.lines) {
-    if (isLine(w)) {
+    if (isLine(w) || isOpening(w)) {
       minX = Math.min(minX, w.x1, w.x2); maxX = Math.max(maxX, w.x1, w.x2);
       minY = Math.min(minY, w.y1, w.y2); maxY = Math.max(maxY, w.y1, w.y2);
     } else {
@@ -2175,7 +2433,7 @@ function zoomExtents() {
   S.view.s = ns;
   S.view.x = cv.width / 2 - ((minX + maxX) / 2) * ns;
   S.view.y = cv.height / 2 + ((minY + maxY) / 2) * ns;
-  render(); toast('Vista centrada', 'ok');
+  render();
 }
 function resetView() {
   S.view.s = INIT_SCALE;
@@ -2199,8 +2457,9 @@ function localXY(e) { const r = cv.getBoundingClientRect(); return { x: e.client
 
 function handleTap(p) {
   if (kp.visible && kp.mode === 'edit-dist') return;
-  if (ui.vanoModal.classList.contains('show') || ui.wallModal.classList.contains('show') ||
-      ui.textModal.classList.contains('show') || ui.modal.classList.contains('show')) return;
+  if (ui.openingModal.classList.contains('show') || ui.wallModal.classList.contains('show') ||
+      ui.textModal.classList.contains('show') || ui.modal.classList.contains('show') ||
+      ui.projectModal.classList.contains('show')) return;
 
   if (S.textMode === 'placing') {
     const w = s2w(p.x, p.y);
@@ -2210,54 +2469,35 @@ function handleTap(p) {
     openTextModal({ edit: false });
     return;
   }
-
   for (const h of hitTargets) {
     if (p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h) {
       const pl = h.payload || {};
-      if (h.action === 'edit-wall-length') { openWallLengthEditor(pl.wallIdx); return; }
-      if (h.action === 'edit-vano-width') { openVanoWidthEditor(pl.wallIdx, pl.vanoIdx); return; }
-      if (h.action === 'edit-vano-position') { openVanoPositionEditor(pl.wallIdx, pl.vanoIdx); return; }
+      if (h.action === 'edit-wall-length') { /* ahora abre propiedades simples */ openWallPropertiesModal(pl.wallIdx); return; }
+      if (h.action === 'edit-vano-width') { /* no-op por ahora */ }
+      return;
     }
   }
-
   if (S.editMode === 'choose-point' && S.selWallIdx >= 0) {
     const handle = findVertexHandleAt(p.x, p.y);
     if (handle) {
       S.movingEnd = handle;
       S.editMode = 'moving';
       kpOpen('vertex-move', S.selWallIdx);
-      render();
-      return;
+      render(); return;
     }
-    deselectSegment();
-    toast('Edición cancelada');
-    return;
+    deselectSegment(); toast('Edición cancelada'); return;
   }
-
   if (S.editMode === 'piece-selected') {
     const hit = findWallPieceAt(p.x, p.y);
-    if (hit && hit.inVano) { openVanoModal(hit.wallIdx, hit.vanoIdx, -1); return; }
-    if (hit && hit.pieceIdx >= 0 && hit.wallIdx === S.selWallIdx && hit.pieceIdx === S.selPieceIdx) {
-      // toca la misma pieza seleccionada sin mover: no hace nada (o deselect)
-      // deselectSegment();
-      return;
-    }
-    if (hit && hit.pieceIdx >= 0) {
-      S.selWallIdx = hit.wallIdx;
-      S.selPieceIdx = hit.pieceIdx;
-      render();
-      return;
-    }
-    deselectSegment();
-    return;
+    if (hit && hit.wallIdx === S.selWallIdx && hit.pieceIdx === S.selPieceIdx) return;
+    if (hit) { S.selWallIdx = hit.wallIdx; S.selPieceIdx = hit.pieceIdx; render(); return; }
+    deselectSegment(); return;
   }
-
   if (S.editMode === 'idle') {
-    const hit = findWallPieceAt(p.x, p.y);
-    if (hit && hit.inVano) { openVanoModal(hit.wallIdx, hit.vanoIdx, -1); return; }
     const ti = findTextAt(p.x, p.y);
     if (ti >= 0) { S.editingTextIdx = ti; openTextModal({ edit: true, idx: ti }); return; }
-    if (hit && hit.pieceIdx >= 0) {
+    const hit = findWallPieceAt(p.x, p.y);
+    if (hit) {
       S.selWallIdx = hit.wallIdx;
       S.selPieceIdx = hit.pieceIdx;
       S.editMode = 'piece-selected';
@@ -2296,8 +2536,6 @@ cv.addEventListener('pointerdown', e => {
         panning = false; S.pickSnap = null; render(); return;
       }
     }
-
-    // NUEVO: en modo choose-point, arrastrar A o B
     if (S.editMode === 'choose-point' && S.selWallIdx >= 0) {
       const handle = findVertexHandleAt(p.x, p.y);
       if (handle) {
@@ -2305,29 +2543,23 @@ cv.addEventListener('pointerdown', e => {
         S.draggingVertex = { wallIdx: S.selWallIdx, end: handle, moved: false };
         S.vertexDragSnap = null;
         panning = false;
-        render();
-        return;
+        render(); return;
       }
     }
-
-    // NUEVO: en modo piece-selected, arrastrar el segmento completo
     if (S.editMode === 'piece-selected' && S.selWallIdx >= 0) {
       const hit = findWallPieceAt(p.x, p.y);
-      if (hit && hit.wallIdx === S.selWallIdx && hit.pieceIdx === S.selPieceIdx && !hit.inVano) {
+      if (hit && hit.wallIdx === S.selWallIdx && hit.pieceIdx === S.selPieceIdx) {
         const w = S.lines[S.selWallIdx];
         S.draggingSegment = {
           wallIdx: S.selWallIdx,
           orig: { x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 },
           startSx: p.x, startSy: p.y,
         };
-        S.segDragMoved = false;
-        S.segDragSnap = null;
+        S.segDragMoved = false; S.segDragSnap = null;
         panning = false;
-        render();
-        return;
+        render(); return;
       }
     }
-
     if (!S.picking && S.textMode !== 'placing' && S.editMode !== 'choose-point' && S.editMode !== 'moving' && dist <= DIAL_R + 26) {
       S.draggingDial = true; updateAngleFromPoint(p.x, p.y, bp); return;
     }
@@ -2336,11 +2568,9 @@ cv.addEventListener('pointerdown', e => {
     if (S.picking) { const cand = findNearestVertex(p.x, p.y); S.pickSnap = cand; render(); }
   }
 });
-
 cv.addEventListener('pointermove', e => {
   if (!ptrs.has(e.pointerId)) return;
   const p = localXY(e); ptrs.set(e.pointerId, p);
-
   if (ptrs.size === 2 && pinch) {
     const [a, b] = [...ptrs.values()];
     const d = Math.max(Math.hypot(a.x - b.x, a.y - b.y), 1);
@@ -2352,24 +2582,17 @@ cv.addEventListener('pointermove', e => {
     S.view.y = mid.y + pinch.wMid.y * ns;
     updateUI(); render(); return;
   }
-
-  // NUEVO: arrastrar vértice A/B libre o con snap
   if (S.draggingVertex) {
     const { wallIdx, end } = S.draggingVertex;
     S.draggingVertex.moved = true;
-    // snap sobre la posición actual del dedo
     const snap = computeSnap(p.x, p.y, wallIdx);
     S.vertexDragSnap = snap;
-    // Convertir el snap a mundo y mover el vértice correspondiente
-    const newW = { x: snap.x, y: snap.y };
     const w = S.lines[wallIdx];
-    if (end === 'start') { w.x1 = newW.x; w.y1 = newW.y; }
-    else { w.x2 = newW.x; w.y2 = newW.y; }
-    // Recalcular métricas (dist/angle) — los vanos NO se reescalan aquí
+    if (end === 'start') { w.x1 = snap.x; w.y1 = snap.y; }
+    else { w.x2 = snap.x; w.y2 = snap.y; }
     const oldDist = w.dist;
     w.dist = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
     w.angle = (Math.atan2(w.y2 - w.y1, w.x2 - w.x1) * 180 / Math.PI + 360) % 360;
-    // Si la longitud cambió demasiado, reescalar vanos proporcionalmente
     if (oldDist > 1e-6 && w.vanos && w.vanos.length && Math.abs(w.dist - oldDist) > 1e-6) {
       const k = w.dist / oldDist;
       for (const v of w.vanos) {
@@ -2377,11 +2600,8 @@ cv.addEventListener('pointermove', e => {
         v.d2 = Math.max(v.d1 + 0.01, Math.min(w.dist, v.d2 * k));
       }
     }
-    updateUI(); render();
-    return;
+    updateUI(); render(); return;
   }
-
-  // NUEVO: arrastrar segmento completo con snap
   if (S.draggingSegment) {
     const ds = S.draggingSegment;
     const dx = p.x - ds.startSx, dy = p.y - ds.startSy;
@@ -2389,14 +2609,11 @@ cv.addEventListener('pointermove', e => {
     if (S.segDragMoved) {
       const w = S.lines[ds.wallIdx];
       const dxW = dx / S.view.s, dyW = -dy / S.view.s;
-      // Ver qué extremo está más cerca para anclar el snap
       const wOrig = ds.orig;
       const newX1 = wOrig.x1 + dxW, newY1 = wOrig.y1 + dyW;
       const newX2 = wOrig.x2 + dxW, newY2 = wOrig.y2 + dyW;
-      // Punto de referencia en pantalla: usamos el centro del segmento
       const cxW = (newX1 + newX2) / 2, cyW = (newY1 + newY2) / 2;
       const cxS = w2s(cxW, cyW).x, cyS = w2s(cxW, cyW).y;
-      // Snap del centro
       const snapCenter = computeSnap(cxS, cyS, ds.wallIdx);
       let finalX1 = newX1, finalY1 = newY1, finalX2 = newX2, finalY2 = newY2;
       if (snapCenter.type === 'vertex' || snapCenter.type === 'grid') {
@@ -2404,16 +2621,13 @@ cv.addEventListener('pointermove', e => {
         finalX1 += dxS; finalY1 += dyS;
         finalX2 += dxS; finalY2 += dyS;
         S.segDragSnap = snapCenter;
-      } else {
-        S.segDragSnap = null;
-      }
+      } else S.segDragSnap = null;
       w.x1 = finalX1; w.y1 = finalY1;
       w.x2 = finalX2; w.y2 = finalY2;
       updateUI(); render();
     }
     return;
   }
-
   if (S.draggingText !== null) {
     const t = S.texts[S.draggingText]; if (!t) { S.draggingText = null; return; }
     const dx = p.x - S.textDragStart.sx, dy = p.y - S.textDragStart.sy;
@@ -2443,47 +2657,38 @@ cv.addEventListener('pointermove', e => {
     }
   }
 });
-
 cv.addEventListener('pointerup', e => {
   const p = ptrs.get(e.pointerId);
   ptrs.delete(e.pointerId);
   try { cv.releasePointerCapture(e.pointerId); } catch (_) {}
-
-  // NUEVO: soltar vértice
   if (S.draggingVertex) {
     const moved = S.draggingVertex.moved;
     const wIdx = S.draggingVertex.wallIdx;
     const w = S.lines[wIdx];
-    S.draggingVertex = null;
-    S.vertexDragSnap = null;
+    S.draggingVertex = null; S.vertexDragSnap = null;
     if (moved && w) {
       S.redoStack.length = 0;
-      toast(`Vértice ${S.movingEnd === 'start' ? 'A' : 'B'} · ${w.x1.toFixed(2)},${w.y1.toFixed(2)} → ${w.dist.toFixed(3)}m`, 'ok');
+      toast(`Vértice ${S.movingEnd === 'start' ? 'A' : 'B'} · ${w.dist.toFixed(3)}m`, 'ok');
     }
     updateUI(); render();
     if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
     return;
   }
-
-  // NUEVO: soltar segmento
   if (S.draggingSegment) {
     const moved = S.segDragMoved;
     const wIdx = S.draggingSegment.wallIdx;
     const w = S.lines[wIdx];
-    S.draggingSegment = null;
-    S.segDragMoved = false;
-    const snapInfo = S.segDragSnap;
-    S.segDragSnap = null;
+    S.draggingSegment = null; S.segDragMoved = false;
+    const snapInfo = S.segDragSnap; S.segDragSnap = null;
     if (moved && w) {
       S.redoStack.length = 0;
-      const snapLbl = snapInfo && snapInfo.type === 'vertex' ? ' · SNAP' : (snapInfo && snapInfo.type === 'grid' ? ' · rejilla' : '');
-      toast(`Segmento movido · ${(w.x1).toFixed(2)},${(w.y1).toFixed(2)}${snapLbl}`, 'ok');
+      const snapLbl = snapInfo && snapInfo.type === 'vertex' ? ' · SNAP' : '';
+      toast(`Segmento movido${snapLbl}`, 'ok');
     }
     updateUI(); render();
     if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
     return;
   }
-
   if (S.draggingText !== null) {
     const idx = S.draggingText; const wasDrag = S.textDragMoved;
     if (!wasDrag) {
@@ -2496,12 +2701,9 @@ cv.addEventListener('pointerup', e => {
     }
     S.draggingText = null; S.textDragMoved = false; S.textDragStart = null; S.pickSnap = null;
     updateUI(); render();
-    const t = S.texts[idx];
-    if (t) toast(`Texto en ${t.x.toFixed(2)}, ${t.y.toFixed(2)}`, 'pk');
     if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
     return;
   }
-
   const wasTap = panning && panStart && !panStart.moved;
   if (S.draggingPointer) {
     S.draggingPointer = false; S.picking = false; S.pickSnap = null;
@@ -2528,7 +2730,6 @@ cv.addEventListener('pointerup', e => {
   } else if (wasTap && !S.picking && p) { handleTap(p); }
   if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
 });
-
 cv.addEventListener('pointercancel', e => {
   ptrs.delete(e.pointerId);
   S.draggingDial = false; S.draggingPointer = false;
@@ -2593,12 +2794,14 @@ async function connectBLE() {
     S.ble.on = true; S.ble.busy = false;
     ui.dot.className = 'dot on';
     ui.stat.textContent = 'GLM conectado';
+    updateStatTxt();
     ui.bleSub.textContent = displayName;
     ui.bleState.textContent = 'ON';
     ui.bleState.style.color = 'var(--ok)';
     toast('GLM conectado', 'ok');
   } catch (err) {
-    S.ble.busy = false; ui.dot.className = 'dot'; ui.stat.textContent = '—';
+    S.ble.busy = false; ui.dot.className = 'dot';
+    ui.stat.textContent = '—'; updateStatTxt();
     if (err && err.name === 'NotFoundError') {}
     else if (err && err.name === 'SecurityError') toast('Permisos BLE denegados', 'err');
     else { toast('Error de conexión', 'err'); console.error('[BLE]', err); }
@@ -2607,7 +2810,7 @@ async function connectBLE() {
 function disconnectBLE() { try { S.ble.dev?.gatt?.disconnect(); } catch (_) {} }
 function onDisconnected() {
   S.ble.on = false; S.ble.chr = null;
-  ui.dot.className = 'dot'; ui.stat.textContent = '—';
+  ui.dot.className = 'dot'; ui.stat.textContent = '—'; updateStatTxt();
   ui.bleSub.textContent = 'Sin conectar'; ui.bleState.textContent = '—'; ui.bleState.style.color = '';
   toast('GLM desconectado', 'warn');
 }
@@ -2668,7 +2871,10 @@ function openModal({ title, desc, def = '', type = 'text', cb }) {
 function closeModal() { ui.modal.classList.remove('show'); maybeCloseOverlay(); modalCb = null; }
 ui.mOk.onclick = () => { const v = ui.mInput.value; const cb = modalCb; closeModal(); if (cb) cb(v); };
 ui.mCancel.onclick = closeModal;
-ui.overlay.onclick = () => { closeModal(); closeTextModal(); closeVanoModal(); closeWallPropertiesModal(); closeSheet(); cancelTextPlacement(); };
+ui.overlay.onclick = () => {
+  closeModal(); closeTextModal(); closeOpeningModal(); closeWallPropertiesModal();
+  closeSheet(); closeProjectModal(); cancelTextPlacement();
+};
 ui.mInput.addEventListener('keydown', e => { if (e.key === 'Enter') ui.mOk.click(); });
 function openSheet() { ui.sheet.classList.add('show'); ui.overlay.classList.add('show'); }
 function closeSheet() { ui.sheet.classList.remove('show'); maybeCloseOverlay(); }
@@ -2679,18 +2885,20 @@ function toast(msg, kind = '') {
   setTimeout(() => { el.style.animation = 'tOut .25s forwards'; setTimeout(() => el.remove(), 260); }, 1800);
 }
 
-/* Actualiza el panel flotante de acciones */
 function updateActionsPanel() {
   const show = S.selWallIdx >= 0 && S.editMode !== 'idle';
   ui.actionsPanel.classList.toggle('show', show);
   if (!show) return;
   const w = S.lines[S.selWallIdx];
   const isLineSel = w && isLine(w);
-  ui.apVano.disabled = isLineSel;
-  // Botón "MOVER" se habilita solo cuando hay una pieza seleccionada (no en choose-point/moving)
+  const isWallSel = w && w.kind === 'wall';
+  const isDoorSel = w && w.kind === 'door';
+  const isWindowSel = w && w.kind === 'window';
+  ui.apPuerta.disabled = !(isWallSel || isDoorSel);
+  ui.apVentana.disabled = !(isWallSel || isWindowSel);
+  ui.apRotate.disabled = !(isDoorSel || isWindowSel);
   ui.apMove.disabled = S.editMode !== 'piece-selected';
 }
-
 ui.apEdit.onclick = () => {
   if (S.selWallIdx < 0) return;
   S.editMode = 'choose-point';
@@ -2699,53 +2907,70 @@ ui.apEdit.onclick = () => {
 };
 ui.apMove.onclick = () => {
   if (S.selWallIdx < 0) return;
-  if (S.editMode !== 'piece-selected') {
-    toast('Selecciona primero una pieza');
-    return;
-  }
+  if (S.editMode !== 'piece-selected') { toast('Selecciona primero una pieza'); return; }
   toast('Arrastra la pieza para moverla');
-  // El arrastre se inicia directamente al tocar el segmento
 };
-ui.apVano.onclick = () => {
-  const w = S.lines[S.selWallIdx]; if (!w || isLine(w)) return;
-  openVanoModal(S.selWallIdx, -1, S.selPieceIdx >= 0 ? S.selPieceIdx : -1);
+ui.apPuerta.onclick = () => {
+  const w = S.lines[S.selWallIdx]; if (!w) return;
+  if (w.kind === 'door') { openOpeningModal(S.selWallIdx); return; }
+  if (w.kind === 'wall') {
+    w.kind = 'door'; w.hinge = w.hinge || 'left-in';
+    toast('Convertido a puerta', 'puerta');
+    updateUI(); render();
+  }
+};
+ui.apVentana.onclick = () => {
+  const w = S.lines[S.selWallIdx]; if (!w) return;
+  if (w.kind === 'window') { openOpeningModal(S.selWallIdx); return; }
+  if (w.kind === 'wall') {
+    w.kind = 'window';
+    toast('Convertido a ventana', 'ventana');
+    updateUI(); render();
+  }
+};
+ui.apRotate.onclick = () => {
+  const w = S.lines[S.selWallIdx]; if (!w || (w.kind !== 'door' && w.kind !== 'window')) return;
+  if (w.kind === 'door') {
+    const order = ['left-in', 'right-in', 'right-out', 'left-out'];
+    const i = (order.indexOf(w.hinge || 'left-in') + 1) % order.length;
+    w.hinge = order[i];
+    toast(`Giro: ${order[i].replace('-', ' ')}`, 'puerta');
+  } else {
+    toast('Rotación aplicada');
+  }
+  S.redoStack.length = 0;
+  updateUI(); render();
 };
 ui.apType.onclick = () => { if (S.selWallIdx >= 0) openWallPropertiesModal(S.selWallIdx); };
 ui.apDel.onclick = () => {
   if (S.selWallIdx < 0) return;
-  if (isLine(S.lines[S.selWallIdx])) { deleteWall(S.selWallIdx); return; }
-  deletePiece(S.selWallIdx, S.selPieceIdx);
+  deleteWall(S.selWallIdx);
 };
 
 function updateToolbar() {
-  const isLineKind = S.currentSegmentKind === 'line';
-  ui.toolWall.classList.toggle('on', !isLineKind);
-  ui.toolLine.classList.toggle('on', isLineKind);
+  const k = S.currentSegmentKind;
+  ui.toolWall.classList.toggle('on', k === 'wall');
+  ui.toolLine.classList.toggle('on', k === 'line');
+  ui.toolPuerta.classList.toggle('on', k === 'door');
+  ui.toolVentana.classList.toggle('on', k === 'window');
   const curType = S.wallTypes[S.currentWallTypeId];
   if (curType) ui.toolWallTag.textContent = curType.name;
   if (curType) ui.toolTypeTag.textContent = curType.name;
   const w = S.selWallIdx >= 0 ? S.lines[S.selWallIdx] : null;
-  const isWallSel = w && !isLine(w);
-  ui.toolVano.disabled = !isWallSel;
-  if (isWallSel) {
-    const vanoCount = (w.vanos || []).length;
-    ui.toolVanoTag.textContent = vanoCount > 0 ? `${vanoCount} vano(s)` : 'Añadir';
-  } else if (w && isLine(w)) {
-    ui.toolVanoTag.textContent = 'Es línea';
-  } else {
-    ui.toolVanoTag.textContent = 'Selecciona un muro';
-  }
   if (S.textMode === 'placing') ui.toolHint.textContent = '✎ toca el lienzo';
   else if (S.picking) ui.toolHint.textContent = '📍 coloca el puntero';
-  else if (S.draggingSegment) ui.toolHint.textContent = '↔ moviendo segmento';
+  else if (S.draggingSegment) ui.toolHint.textContent = '↔ moviendo';
   else if (S.draggingVertex) ui.toolHint.textContent = '◉ moviendo vértice';
-  else if (w && isWallSel) ui.toolHint.textContent = `Muro ${w.dist.toFixed(2)} m seleccionado`;
-  else if (w && isLine(w)) ui.toolHint.textContent = `Línea ${w.dist.toFixed(2)} m seleccionada`;
-  else ui.toolHint.textContent = 'Toca un segmento para acciones';
+  else if (w) {
+    const kindLbl = isLine(w) ? 'Línea' : (w.kind === 'door' ? 'Puerta' : (w.kind === 'window' ? 'Ventana' : 'Muro'));
+    ui.toolHint.textContent = `${kindLbl} ${w.dist.toFixed(2)} m`;
+  }
+  else ui.toolHint.textContent = 'Toca un segmento · o dibuja uno nuevo';
 }
-
-ui.toolWall.onclick = () => { S.currentSegmentKind = 'wall'; updateUI(); toast('Nuevos segmentos: MURO', 'ok'); };
-ui.toolLine.onclick = () => { S.currentSegmentKind = 'line'; updateUI(); toast('Nuevos segmentos: LÍNEA', 'vi'); };
+ui.toolWall.onclick = () => { S.currentSegmentKind = 'wall'; updateUI(); toast('Nuevos: MURO', 'ok'); };
+ui.toolLine.onclick = () => { S.currentSegmentKind = 'line'; updateUI(); toast('Nuevos: LÍNEA', 'vi'); };
+ui.toolPuerta.onclick = () => { S.currentSegmentKind = 'door'; updateUI(); toast('Nuevos: PUERTA 🚪', 'puerta'); };
+ui.toolVentana.onclick = () => { S.currentSegmentKind = 'window'; updateUI(); toast('Nuevos: VENTANA 🪟', 'ventana'); };
 ui.toolType.onclick = () => {
   S.tempKind = 'wall';
   S.tempWallTypeId = S.currentWallTypeId;
@@ -2759,26 +2984,22 @@ ui.toolType.onclick = () => {
   ui.wmOk.dataset.mode = 'defaults';
   ui.overlay.classList.add('show'); ui.wallModal.classList.add('show');
 };
-ui.toolVano.onclick = () => {
-  const w = S.selWallIdx >= 0 ? S.lines[S.selWallIdx] : null;
-  if (!w || isLine(w)) { toast('Selecciona un muro primero', 'warn'); return; }
-  const pieceIdx = S.selPieceIdx >= 0 ? S.selPieceIdx : -1;
-  openVanoModal(S.selWallIdx, -1, pieceIdx);
-};
 
 function updateUI() {
   ui.tCoord.textContent = `${S.base.x.toFixed(2)}, ${S.base.y.toFixed(2)}`;
   ui.tDist.textContent = S.lastDist.toFixed(3);
   ui.tAng.textContent = `${S.angle.toFixed(0).padStart(3, '0')}°`;
-  let wallCount = 0, lineCount = 0, vanoCount = 0;
+  let wallCount = 0, lineCount = 0, doorCount = 0, windowCount = 0;
   for (const l of S.lines) {
     if (isLine(l)) lineCount++;
+    else if (l.kind === 'door') doorCount++;
+    else if (l.kind === 'window') windowCount++;
     else wallCount++;
-    vanoCount += (l.vanos || []).length;
   }
   ui.tSeg.textContent = wallCount;
   ui.tLines.textContent = lineCount;
-  ui.tVanos.textContent = vanoCount;
+  ui.tPuertas.textContent = doorCount;
+  ui.tVentanas.textContent = windowCount;
   ui.tTxt.textContent = S.texts.length;
   const z = S.view.s;
   if (z >= 1e5) ui.tZoom.textContent = (z / 1000).toFixed(0) + 'k';
@@ -2809,7 +3030,7 @@ function updateUI() {
   ui.dimsVal.textContent = dimShort[S.dimMode];
   ui.gridVal.textContent = S.grid ? 'ON' : 'OFF';
   ui.gridVal.style.color = S.grid ? 'var(--ac)' : '';
-  ui.dxfSub.textContent = `${wallCount} muros · ${lineCount} líneas · ${S.texts.length} textos`;
+  ui.dxfSub.textContent = `${wallCount} muros · ${lineCount} líneas · ${doorCount} 🚪 · ${windowCount} 🪟`;
   ui.magSub.textContent = `Radio ${S.pickSnapPx} px`;
   ui.magVal.textContent = S.pickSnapPx;
   ui.defTextSize.textContent = S.defaultTextSize.toFixed(2);
@@ -2817,7 +3038,6 @@ function updateUI() {
   ui.defWallTypeVal.textContent = curType ? curType.name : '—';
   ui.defAlignVal.textContent = ALIGN_LABELS[S.currentAlignment] || 'Centro';
   ui.defAlignSub.textContent = ALIGN_DESC[S.currentAlignment] || '';
-  ui.defVanoVal.textContent = `${S.defaultVanoWidth.toFixed(2)} m`;
   ui.kpState.textContent = !kp.visible ? 'OFF' : (kp.pinned ? 'FIJO' : 'ON');
   ui.kpState.style.color = kp.visible ? 'var(--ac)' : '';
   ui.kpSub.textContent = kp.visible ? (kp.pinned ? 'Fijado en pantalla' : 'Visible · auto-oculta al aplicar') : 'Oculto';
@@ -2858,17 +3078,17 @@ ui.chipDims.onclick = () => {
 ui.bUndo.onclick = undo;
 ui.bRedo.onclick = redo;
 ui.bAngle.onclick = () => {
-  cancelTextPlacement(); closeVanoModal(); closeWallPropertiesModal();
+  cancelTextPlacement(); closeOpeningModal(); closeWallPropertiesModal();
   if (kp.visible && kp.mode === 'angle') kpClose();
   else { deselectSegment(); kpOpen('angle'); }
 };
 ui.bDist.onclick = () => {
-  cancelTextPlacement(); closeVanoModal(); closeWallPropertiesModal();
+  cancelTextPlacement(); closeOpeningModal(); closeWallPropertiesModal();
   if (kp.visible && kp.mode === 'dist') kpClose();
   else { deselectSegment(); kpOpen('dist'); }
 };
 ui.bBase.onclick = () => {
-  cancelTextPlacement(); closeVanoModal(); closeWallPropertiesModal();
+  cancelTextPlacement(); closeOpeningModal(); closeWallPropertiesModal();
   deselectSegment();
   S.picking = !S.picking; S.pickSnap = null;
   if (S.picking) S.newPolylineOnPick = false;
@@ -2876,12 +3096,11 @@ ui.bBase.onclick = () => {
   toast(S.picking ? 'Puntero libre · arrástralo o toca el lienzo' : 'Cancelado');
   render();
 };
-ui.bTerminar.onclick = () => { cancelTextPlacement(); closeVanoModal(); closeWallPropertiesModal(); terminarPolyline(); };
-ui.bClose.onclick = () => { cancelTextPlacement(); closeVanoModal(); closeWallPropertiesModal(); closePolygon(); };
+ui.bTerminar.onclick = () => { cancelTextPlacement(); closeOpeningModal(); closeWallPropertiesModal(); terminarPolyline(); };
+ui.bClose.onclick = () => { cancelTextPlacement(); closeOpeningModal(); closeWallPropertiesModal(); closePolygon(); };
 
 ui.optBLE.onclick = () => { closeSheet(); setTimeout(connectBLE, 220); };
 ui.optCompass.onclick = () => { closeSheet(); setTimeout(enableCompass, 220); };
-
 ui.optDefaultWallType.onclick = () => {
   S.tempKind = 'wall';
   S.tempWallTypeId = S.currentWallTypeId;
@@ -2907,19 +3126,6 @@ ui.optDefaultAlign.onclick = () => {
   ui.wmWarnVanos.classList.add('section-hidden');
   ui.wmOk.dataset.mode = 'defaults';
   ui.overlay.classList.add('show'); ui.wallModal.classList.add('show');
-};
-ui.optDefaultVano.onclick = () => {
-  openModal({
-    title: 'Ancho vano por defecto', desc: 'Ancho estándar de puertas o ventanas (0.30 – 5.00 m)',
-    def: String(S.defaultVanoWidth), type: 'number',
-    cb: v => {
-      const n = parseFloat(String(v).replace(',', '.'));
-      if (!isNaN(n)) {
-        S.defaultVanoWidth = Math.max(0.3, Math.min(5, n));
-        updateUI(); toast(`Ancho vano: ${S.defaultVanoWidth.toFixed(2)} m`, 'ok');
-      }
-    }
-  });
 };
 ui.optSnap.onclick = () => {
   const order = ['free', 'ortho', '45', '15'];
