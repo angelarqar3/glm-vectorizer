@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#08080a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>GLM CAD Pro — v13</title>
+<title>GLM CAD Pro — v14</title>
 <style>
 :root{
   --bg:#08080a; --s1:#101014; --s2:#17171c; --s3:#1f1f26;
@@ -48,6 +48,7 @@ canvas{display:block;width:100%;height:100%}
 .chip.warn{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.55);color:var(--wn)}
 .chip.text-mode{background:var(--pk-d);border-color:rgba(244,114,182,.65);color:var(--pk)}
 .chip.edit-mode{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.65);color:#22c55e}
+.chip.len-mode{background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.65);color:#fbbf24}
 .rose{position:absolute;top:8px;right:8px;width:52px;height:52px;border-radius:50%;background:rgba(16,16,20,.85);backdrop-filter:blur(12px);border:1px solid var(--bd);display:grid;place-items:center;transition:opacity .2s;pointer-events:none}
 .rose.hidden{opacity:0}
 .rose svg{width:40px;height:40px}
@@ -99,6 +100,7 @@ body.hide-chrome .actions-panel{bottom:12px}
 .ap-btn:active{background:var(--s3);transform:scale(.95)}
 .ap-btn .ap-ic{font-size:14px;line-height:1}
 .ap-btn.edit{color:#22c55e}
+.ap-btn.len{color:#fbbf24}
 .ap-btn.vano{color:#f59e0b}
 .ap-btn.move{color:#22d3ee}
 .ap-btn.type{color:#a78bfa}
@@ -172,8 +174,6 @@ body.hide-chrome .collapse-toggle{bottom:14px}
 .align-tab.on{background:var(--ac-d);border-color:var(--ac);color:var(--ac)}
 .align-tab .at-icon{font-size:14px;line-height:1;font-family:var(--mono)}
 .section-hidden{display:none !important}
-.warn-box{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:var(--r2);padding:10px 12px;margin-top:12px;font-size:12px;color:#fcd99a;display:flex;gap:8px;align-items:flex-start}
-.warn-box .warn-ic{font-size:16px;flex-shrink:0;line-height:1.2}
 .hinge-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:6px}
 .hinge-tab{height:44px;background:var(--s1);border:1.5px solid var(--bd2);border-radius:var(--r1);color:var(--tx2);font:600 9px -apple-system,system-ui,sans-serif;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-transform:uppercase;letter-spacing:.02em}
 .hinge-tab:active{background:var(--s3)}
@@ -213,11 +213,14 @@ body.hide-chrome .collapse-toggle{bottom:14px}
 .kp-tag.angle{color:#fcd99a;border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08)}
 .kp-tag.dist{color:var(--ac);border-color:rgba(34,211,238,.4);background:var(--ac-d)}
 .kp-tag.edit{color:#86efac;border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1)}
+.kp-tag.len{color:#fde68a;border-color:rgba(251,191,36,.55);background:rgba(251,191,36,.1)}
 .kp-tag.opening{color:#93c5fd;border-color:rgba(96,165,250,.5);background:rgba(96,165,250,.1)}
 .kp-display{flex:1;display:flex;align-items:baseline;background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r1);padding:4px 10px;min-width:0;height:36px;transition:.15s}
 .kp-display.edit{border-color:rgba(34,197,94,.7);box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.kp-display.len{border-color:rgba(251,191,36,.75);box-shadow:0 0 0 3px rgba(251,191,36,.15)}
 #kpInput{flex:1;background:transparent;border:none;outline:none;color:var(--ac);font:800 16px var(--mono);letter-spacing:.05em;text-align:right;padding:0;min-width:0;height:100%}
 .kp-display.edit #kpInput{color:#22c55e}
+.kp-display.len #kpInput{color:#fbbf24}
 #kpInput::placeholder{color:var(--tx3);font-weight:600}
 .kp-unit{color:var(--tx2);font:700 12px var(--mono);margin-left:5px;flex-shrink:0}
 .kp-icon{width:34px;height:34px;border-radius:var(--r1);background:transparent;border:1px solid transparent;color:var(--tx2);display:grid;place-items:center;cursor:pointer;font-size:14px;transition:.15s;flex-shrink:0;touch-action:manipulation}
@@ -229,6 +232,7 @@ body.hide-chrome .collapse-toggle{bottom:14px}
 .kp-key.kp-fn{color:var(--tx2);font-size:14px;background:#1a1a1f}
 .kp-key.kp-ok{background:var(--ac);color:#00232b;border-color:var(--ac);font:800 13px -apple-system,system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;grid-column:span 2}
 .keypad.edit .kp-key.kp-ok{background:#22c55e;border-color:#22c55e;color:#00220d}
+.keypad.len .kp-key.kp-ok{background:#fbbf24;border-color:#fbbf24;color:#3d2800}
 body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 .toasts{position:fixed;left:50%;bottom:calc(110px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;z-index:600;transition:bottom .26s cubic-bezier(.2,.8,.3,1);max-width:calc(100% - 24px)}
 .toast{background:rgba(23,23,28,.96);backdrop-filter:blur(14px);border:1px solid var(--bd2);border-radius:20px;padding:8px 16px;font-size:12px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.5);color:var(--tx);animation:tIn .25s cubic-bezier(.2,.8,.3,1);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
@@ -265,7 +269,8 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
     <button class="chip on" id="chipDims">📐 COTAS</button>
     <button class="chip" id="chipVis">👁 VER: TODO</button>
     <button class="chip text-mode" id="chipText" style="display:none">✎ TEXTO</button>
-    <button class="chip edit-mode" id="chipEdit" style="display:none">✎ EDITANDO</button>
+    <button class="chip edit-mode" id="chipEdit" style="display:none">✎ ELIGE A/B</button>
+    <button class="chip len-mode" id="chipLen" style="display:none">📏 ELIGE A/B</button>
   </div>
   <div class="rose hidden" id="rose">
     <svg viewBox="-30 -30 60 60">
@@ -282,6 +287,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 
   <div class="actions-panel" id="actionsPanel">
     <button class="ap-btn edit" id="apEdit"><span class="ap-ic">✎</span>EDITAR</button>
+    <button class="ap-btn len" id="apLen"><span class="ap-ic">📏</span>LONGITUD</button>
     <button class="ap-btn vano" id="apVano"><span class="ap-ic">🚪</span>VANO</button>
     <button class="ap-btn move" id="apMove"><span class="ap-ic">↔</span>MOVER</button>
     <button class="ap-btn type" id="apType"><span class="ap-ic">🧱</span>TIPO</button>
@@ -484,7 +490,7 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
 <div class="toasts" id="toasts"></div>
 
 <script>
-/* GLM CAD Pro v13 — completo */
+/* GLM CAD Pro v14 — longitud con selección de vértice A/B */
 'use strict';
 
 const SERVICE_DATA = "02A6C0D0-0451-4000-B000-FB3210111989";
@@ -497,7 +503,7 @@ const PROJECTS_KEY = 'glmcad:projects:v1';
 const AUTOSAVE_KEY = 'glmcad:autosave:v1';
 const HISTORY_LIMIT = 50;
 const AUTOSAVE_INTERVAL_MS = 30000;
-const CURRENT_SCHEMA = 3;
+const CURRENT_SCHEMA = 4;
 
 const DEFAULT_WALL_TYPES = {
   'muro-10': { id: 'muro-10', name: '10 cm', thickness: 0.10 },
@@ -805,7 +811,8 @@ const S = {
   pickSnap: null, pickSnapPx: 30,
   polylineStart: 0, newPolylineOnPick: false,
   selWallIdx: -1, selPieceIdx: -1,
-  editMode: 'idle', movingEnd: null,
+  editMode: 'idle',       // 'idle' | 'piece-selected' | 'choose-point' | 'moving' | 'choose-len-end'
+  movingEnd: null,
   draggingSegment: null, segDragMoved: false, segDragSnap: null,
   draggingVertex: null, vertexDragSnap: null,
   textMode: 'idle', pendingTextPos: null, editingTextIdx: -1, defaultTextSize: 0.25,
@@ -832,7 +839,7 @@ const cv = $('cv'), ctx = cv.getContext('2d');
 const ui = {
   dot: $('dot'), stat: $('statTxt'),
   chipOrtho: $('chipOrtho'), chipSnap: $('chipSnap'), chipDims: $('chipDims'),
-  chipVis: $('chipVis'), chipText: $('chipText'), chipEdit: $('chipEdit'),
+  chipVis: $('chipVis'), chipText: $('chipText'), chipEdit: $('chipEdit'), chipLen: $('chipLen'),
   rose: $('rose'), needle: $('needle'), scalebar: $('scalebar'),
   tCoord: $('tCoord'), tDist: $('tDist'), tAng: $('tAng'), tSeg: $('tSeg'),
   tLines: $('tLines'), tPuertas: $('tPuertas'), tVentanas: $('tVentanas'),
@@ -882,7 +889,7 @@ const ui = {
   toolType: $('toolType'), toolWallTag: $('toolWallTag'),
   toolTypeTag: $('toolTypeTag'), toolHint: $('toolHint'),
   actionsPanel: $('actionsPanel'),
-  apEdit: $('apEdit'), apVano: $('apVano'), apMove: $('apMove'),
+  apEdit: $('apEdit'), apLen: $('apLen'), apVano: $('apVano'), apMove: $('apMove'),
   apType: $('apType'), apDel: $('apDel'),
   btnProject: $('btnProject'),
 };
@@ -939,7 +946,9 @@ function findWallPieceAt(sx, sy) {
   return best;
 }
 function findVertexHandleAt(sx, sy) {
-  if (S.editMode !== 'choose-point' || S.selWallIdx < 0) return null;
+  // Activo en 'choose-point' (editar largo por arrastre/keypad)
+  // y en 'choose-len-end' (solo keypad). Ambos sobre el segmento seleccionado.
+  if ((S.editMode !== 'choose-point' && S.editMode !== 'choose-len-end') || S.selWallIdx < 0) return null;
   const w = S.lines[S.selWallIdx];
   if (!w) return null;
   const A = w2s(w.x1, w.y1), B = w2s(w.x2, w.y2);
@@ -1088,6 +1097,8 @@ function deleteWall(idx) {
   if (S.polylineStart > S.lines.length) S.polylineStart = S.lines.length;
   else if (idx < S.polylineStart) S.polylineStart = Math.max(0, S.polylineStart - 1);
   S.selWallIdx = -1; S.selPieceIdx = -1; S.editMode = 'idle'; S.movingEnd = null;
+  ui.chipEdit.style.display = 'none';
+  ui.chipLen.style.display = 'none';
   render(); updateUI(); toast('Segmento eliminado', 'warn'); triggerAutosave();
 }
 function deselectSegment() {
@@ -1095,6 +1106,7 @@ function deselectSegment() {
   S.draggingVertex = null; S.vertexDragSnap = null;
   S.draggingSegment = null; S.segDragMoved = false; S.segDragSnap = null;
   ui.chipEdit.style.display = 'none';
+  ui.chipLen.style.display = 'none';
   render(); updateUI();
 }
 function recomputeWallMetrics(idx) {
@@ -1103,6 +1115,11 @@ function recomputeWallMetrics(idx) {
   l.dist = Math.hypot(dx, dy);
   l.angle = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
 }
+/**
+ * Edita la longitud del segmento moviendo SOLO el vértice elegido (A o B).
+ * El otro extremo queda fijo. NO propaga a vecinos.
+ * Si movingEnd === 'both', escala desde el punto medio (mantiene A y B simétricos).
+ */
 function editPieceLength(wallIdx, newLen, movingEnd) {
   const w = S.lines[wallIdx]; if (!w) return;
   const L = Math.abs(newLen);
@@ -1111,9 +1128,16 @@ function editPieceLength(wallIdx, newLen, movingEnd) {
   const rad = w.angle * Math.PI / 180;
   const cs = Math.cos(rad), sn = Math.sin(rad);
   if (movingEnd === 'end') {
-    w.x2 = w.x1 + L * cs; w.y2 = w.y1 + L * sn;
-  } else {
-    w.x1 = w.x2 - L * cs; w.y1 = w.y2 - L * sn;
+    w.x2 = w.x1 + L * cs;
+    w.y2 = w.y1 + L * sn;
+  } else if (movingEnd === 'start') {
+    w.x1 = w.x2 - L * cs;
+    w.y1 = w.y2 - L * sn;
+  } else if (movingEnd === 'both') {
+    const cx = (w.x1 + w.x2) / 2, cy = (w.y1 + w.y2) / 2;
+    const half = L / 2;
+    w.x1 = cx - half * cs; w.y1 = cy - half * sn;
+    w.x2 = cx + half * cs; w.y2 = cy + half * sn;
   }
   recomputeWallMetrics(wallIdx);
   if (movingEnd === 'end' && wallIdx === S.lines.length - 1) {
@@ -1405,28 +1429,28 @@ ui.chipText.onclick = () => { cancelTextPlacement(); toast('Colocación cancelad
 function kpClearInput() { kp.value = ''; ui.kpInput.value = ''; }
 function kpOpen(mode, editIdx = -1) {
   kp.mode = mode; kp.editIdx = editIdx; kp.visible = true;
-  ui.keypad.classList.remove('edit');
-  ui.kpDisplay.classList.remove('edit');
-  ui.kpTag.classList.remove('opening');
+  ui.keypad.classList.remove('edit', 'len');
+  ui.kpDisplay.classList.remove('edit', 'len');
+  ui.kpTag.classList.remove('opening', 'edit', 'len', 'angle', 'dist');
   if (mode === 'angle') {
-    ui.kpTag.textContent = 'ÁNGULO'; ui.kpTag.className = 'kp-tag angle';
+    ui.kpTag.textContent = 'ÁNGULO'; ui.kpTag.classList.add('angle');
     ui.kpUnit.textContent = '°'; kpClearInput();
-  } else if (mode === 'edit-dist') {
+  } else if (mode === 'len-dist') {
     const w = S.lines[editIdx];
-    const endLabel = S.movingEnd === 'start' ? 'A' : 'B';
+    const endLabel = S.movingEnd === 'start' ? 'A' : (S.movingEnd === 'end' ? 'B' : 'AMBOS');
     const segLen = w ? w.dist : 0;
     const kindLbl = w ? (isLine(w) ? 'LÍN' : (w.kind === 'door' ? '🚪' : (w.kind === 'window' ? '🪟' : 'MURO'))) : 'SEG';
-    ui.kpTag.textContent = `${kindLbl} · PTO ${endLabel}`;
-    ui.kpTag.className = 'kp-tag edit';
+    ui.kpTag.textContent = `${kindLbl} · MOVER ${endLabel}`;
+    ui.kpTag.classList.add('len');
     ui.kpUnit.textContent = 'm';
     kp.value = segLen.toFixed(3);
     ui.kpInput.value = kp.value;
-    ui.keypad.classList.add('edit');
-    ui.kpDisplay.classList.add('edit');
+    ui.keypad.classList.add('len');
+    ui.kpDisplay.classList.add('len');
   } else if (mode === 'opening-width') {
     const w = S.lines[editIdx];
     ui.kpTag.textContent = w && w.kind === 'door' ? '🚪 ANCHO' : '🪟 ANCHO';
-    ui.kpTag.className = 'kp-tag opening';
+    ui.kpTag.classList.add('opening');
     ui.kpUnit.textContent = 'm';
     kp.value = w ? w.dist.toFixed(3) : '';
     ui.kpInput.value = kp.value;
@@ -1435,7 +1459,7 @@ function kpOpen(mode, editIdx = -1) {
   } else {
     const k = S.currentSegmentKind;
     ui.kpTag.textContent = k === 'line' ? 'LÍNEA' : 'MURO';
-    ui.kpTag.className = 'kp-tag dist';
+    ui.kpTag.classList.add('dist');
     ui.kpUnit.textContent = 'm';
     kpClearInput();
   }
@@ -1444,16 +1468,16 @@ function kpOpen(mode, editIdx = -1) {
   updateUI();
 }
 function kpHide() {
-  const wasEdit = kp.mode === 'edit-dist' || kp.mode === 'opening-width';
-  ui.keypad.classList.remove('show');
-  ui.keypad.classList.remove('edit');
-  ui.kpDisplay.classList.remove('edit');
+  const wasEdit = kp.mode === 'len-dist' || kp.mode === 'opening-width';
+  ui.keypad.classList.remove('show', 'edit', 'len');
+  ui.kpDisplay.classList.remove('edit', 'len');
   document.body.classList.remove('kp-open');
   kp.visible = false; kp.editIdx = -1; kpClearInput();
   if (wasEdit) {
     S.selWallIdx = -1; S.selPieceIdx = -1;
     S.editMode = 'idle'; S.movingEnd = null;
     ui.chipEdit.style.display = 'none';
+    ui.chipLen.style.display = 'none';
   }
   render(); updateUI();
 }
@@ -1487,11 +1511,12 @@ function kpConfirm() {
     if (!kp.pinned) kpHide();
     return;
   }
-  if (kp.mode === 'edit-dist') {
+  if (kp.mode === 'len-dist') {
     if (Math.abs(val) < 1e-9) { toast('Valor no puede ser 0', 'err'); return; }
     editPieceLength(kp.editIdx, val, S.movingEnd);
     S.selWallIdx = -1; S.selPieceIdx = -1; S.editMode = 'idle'; S.movingEnd = null;
     ui.chipEdit.style.display = 'none';
+    ui.chipLen.style.display = 'none';
     kpClearInput(); kpHide();
     return;
   }
@@ -1565,8 +1590,7 @@ function updateAlignTabs() {
   ui.wmAlignTabs.querySelectorAll('.align-tab').forEach(t => t.classList.toggle('on', t.dataset.align === S.tempAlignment));
 }
 function updateSectionsVisibility() {
-  const isWallKind = S.tempKind === 'wall';
-  ui.wmSections.classList.toggle('section-hidden', !isWallKind);
+  ui.wmSections.classList.toggle('section-hidden', S.tempKind !== 'wall');
 }
 ui.wmKindTabs.addEventListener('click', e => {
   const tile = e.target.closest('.kind-tile'); if (!tile) return;
@@ -1681,7 +1705,7 @@ function drawSegment(w, idx, isActive) {
 function drawLineSegment(w, idx, isActive) {
   const p1 = w2s(w.x1, w.y1), p2 = w2s(w.x2, w.y2);
   const isSelWall = (S.selWallIdx === idx);
-  const isSelPiece = isSelWall && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'moving');
+  const isSelPiece = isSelWall && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'moving' || S.editMode === 'choose-len-end');
   const isDragging = S.draggingSegment && S.draggingSegment.wallIdx === idx;
   const baseColor = isDragging ? '#fbbf24' : (isSelPiece ? '#22c55e' : (isActive ? '#a78bfa' : '#7c6fbf'));
   const lw = isSelPiece || isDragging ? 4 : 2.4;
@@ -1698,7 +1722,7 @@ function drawLineSegment(w, idx, isActive) {
 function drawDoorSegment(w, idx, isActive) {
   const p1 = w2s(w.x1, w.y1), p2 = w2s(w.x2, w.y2);
   const isSelWall = (S.selWallIdx === idx);
-  const isSelPiece = isSelWall && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'moving');
+  const isSelPiece = isSelWall && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'moving' || S.editMode === 'choose-len-end');
   const isDragging = S.draggingSegment && S.draggingSegment.wallIdx === idx;
   const rad = w.angle * Math.PI / 180;
   const ux = Math.cos(rad), uy = Math.sin(rad);
@@ -1761,7 +1785,7 @@ function drawDoorSegment(w, idx, isActive) {
 }
 function drawWindowSegment(w, idx, isActive) {
   const isSelWall = (S.selWallIdx === idx);
-  const isSelPiece = isSelWall && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'moving');
+  const isSelPiece = isSelWall && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'moving' || S.editMode === 'choose-len-end');
   const isDragging = S.draggingSegment && S.draggingSegment.wallIdx === idx;
   const rad = w.angle * Math.PI / 180;
   const ux = Math.cos(rad), uy = Math.sin(rad);
@@ -1801,7 +1825,7 @@ function drawWallSegment(w, idx, isActive) {
   const { o1, o2 } = getWallFaceOffsets(w);
   const at = (d, o) => { const p = wallPointWorld(w, d, o); return w2s(p.x, p.y); };
   const isSelWall = (S.selWallIdx === idx);
-  const isSelPiece = isSelWall && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'moving');
+  const isSelPiece = isSelWall && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'moving' || S.editMode === 'choose-len-end');
   const isDragging = S.draggingSegment && S.draggingSegment.wallIdx === idx;
   const baseColor = isDragging ? '#fbbf24' : (isActive ? '#22d3ee' : '#0e8fa3');
   const fillColor = isDragging ? 'rgba(251,191,36,.14)' : (isActive ? 'rgba(34,211,238,.08)' : 'rgba(14,143,163,.05)');
@@ -1876,7 +1900,7 @@ function paint() {
       }
       if (show) {
         drawnDimRects.push({ x: lx, y: ly, w: tw, h: th });
-        const isSelPiece = (S.selWallIdx === i) && (S.editMode === 'piece-selected' || S.editMode === 'choose-point');
+        const isSelPiece = (S.selWallIdx === i) && (S.editMode === 'piece-selected' || S.editMode === 'choose-point' || S.editMode === 'choose-len-end');
         drawLabel(label, c.x, c.y - 22, isActive && !isSelPiece, isSelPiece, isLine(l));
       }
     }
@@ -1937,7 +1961,7 @@ function paint() {
     ctx.beginPath(); ctx.arc(bp.x, bp.y, 12 + tt * 12, 0, 7); ctx.stroke();
     render();
   }
-  if (S.editMode === 'choose-point' || S.editMode === 'moving') render();
+  if (S.editMode === 'choose-point' || S.editMode === 'moving' || S.editMode === 'choose-len-end') render();
   drawUCS();
 }
 function drawTexts() {
@@ -1965,17 +1989,21 @@ function drawTexts() {
   }
 }
 function drawEditUI() {
-  if (S.editMode === 'choose-point' && S.selWallIdx >= 0) {
+  // Handles A / B visibles en choose-point, moving y choose-len-end
+  const showHandles = (S.editMode === 'choose-point' || S.editMode === 'choose-len-end') && S.selWallIdx >= 0;
+  if (showHandles) {
     const w = S.lines[S.selWallIdx]; if (!w) return;
     const fo = getWallFaceOffsets(w);
     const mo = (fo.o1 + fo.o2) / 2;
     const pA = w2s(wallPointWorld(w, 0, mo).x, wallPointWorld(w, 0, mo).y);
     const pB = w2s(wallPointWorld(w, w.dist, mo).x, wallPointWorld(w, w.dist, mo).y);
+    const isLen = S.editMode === 'choose-len-end';
     [{ p: pA, lbl: 'A', end: 'start' }, { p: pB, lbl: 'B', end: 'end' }].forEach(({ p, lbl, end }) => {
       const isDraggingThis = S.draggingVertex && S.draggingVertex.end === end && S.draggingVertex.wallIdx === S.selWallIdx;
       const t = (performance.now() / 700) % 1;
-      const col = isDraggingThis ? '#fbbf24' : '#22c55e';
-      ctx.strokeStyle = isDraggingThis ? `rgba(251,191,36,.95)` : `rgba(34,197,94,${0.9 - t * 0.6})`;
+      const col = isDraggingThis ? '#fbbf24' : (isLen ? '#fbbf24' : '#22c55e');
+      const strokeCol = isDraggingThis ? `rgba(251,191,36,.95)` : (isLen ? `rgba(251,191,36,${0.9 - t*0.6})` : `rgba(34,197,94,${0.9 - t * 0.6})`);
+      ctx.strokeStyle = strokeCol;
       ctx.lineWidth = isDraggingThis ? 3 : 2.5;
       ctx.beginPath(); ctx.arc(p.x, p.y, (isDraggingThis ? 18 : 14) + t * 8, 0, 7); ctx.stroke();
       ctx.fillStyle = col;
@@ -1985,11 +2013,11 @@ function drawEditUI() {
       ctx.font = '700 11px "SF Mono",monospace';
       const lw = ctx.measureText(lbl).width + 16;
       ctx.fillStyle = 'rgba(8,8,10,.92)';
-      ctx.strokeStyle = isDraggingThis ? 'rgba(251,191,36,.9)' : 'rgba(34,197,94,.85)';
+      ctx.strokeStyle = isDraggingThis ? 'rgba(251,191,36,.9)' : (isLen ? 'rgba(251,191,36,.85)' : 'rgba(34,197,94,.85)');
       ctx.lineWidth = 1;
       roundRect(p.x + 18, p.y - 11, lw, 22, 11);
       ctx.fill(); ctx.stroke();
-      ctx.fillStyle = isDraggingThis ? '#fde68a' : '#86efac';
+      ctx.fillStyle = isDraggingThis ? '#fde68a' : (isLen ? '#fde68a' : '#86efac');
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(lbl, p.x + 18 + lw / 2, p.y + .5);
       ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
@@ -2244,7 +2272,7 @@ let pinch = null, panning = false, panStart = null;
 function localXY(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 
 function handleTap(p) {
-  if (kp.visible && kp.mode === 'edit-dist') return;
+  if (kp.visible && kp.mode === 'len-dist') return;
   if (anyModalOpen()) return;
   if (S.textMode === 'placing') {
     const w = s2w(p.x, p.y);
@@ -2254,12 +2282,28 @@ function handleTap(p) {
     openTextModal({ edit: false });
     return;
   }
+  // Modo elegir vértice para LONGITUD
+  if (S.editMode === 'choose-len-end' && S.selWallIdx >= 0) {
+    const handle = findVertexHandleAt(p.x, p.y);
+    if (handle) {
+      S.movingEnd = handle;
+      S.editMode = 'moving';
+      ui.chipLen.style.display = 'none';
+      kpOpen('len-dist', S.selWallIdx);
+      render();
+      return;
+    }
+    deselectSegment();
+    return;
+  }
+  // Modo elegir vértice para EDITAR (arrastre)
   if (S.editMode === 'choose-point' && S.selWallIdx >= 0) {
     const handle = findVertexHandleAt(p.x, p.y);
     if (handle) {
       S.movingEnd = handle;
       S.editMode = 'moving';
-      kpOpen('edit-dist', S.selWallIdx);
+      ui.chipEdit.style.display = 'none';
+      kpOpen('len-dist', S.selWallIdx);
       render();
       return;
     }
@@ -2316,7 +2360,7 @@ cv.addEventListener('pointerdown', e => {
         render(); return;
       }
     }
-    if (S.editMode === 'choose-point' && S.selWallIdx >= 0) {
+    if ((S.editMode === 'choose-point' || S.editMode === 'choose-len-end') && S.selWallIdx >= 0) {
       const handle = findVertexHandleAt(p.x, p.y);
       if (handle) {
         S.movingEnd = handle;
@@ -2340,7 +2384,7 @@ cv.addEventListener('pointerdown', e => {
         render(); return;
       }
     }
-    if (!S.picking && S.textMode !== 'placing' && S.editMode !== 'choose-point' && S.editMode !== 'moving' && dist <= DIAL_R + 26) {
+    if (!S.picking && S.textMode !== 'placing' && S.editMode !== 'choose-point' && S.editMode !== 'moving' && S.editMode !== 'choose-len-end' && dist <= DIAL_R + 26) {
       S.draggingDial = true;
       updateAngleFromPoint(p.x, p.y, bp); return;
     }
@@ -2673,6 +2717,8 @@ function applyProjectData(data, name, id, restoreView = true) {
   S.currentProjectName = name || null;
   S.selWallIdx = -1; S.selPieceIdx = -1; S.editMode = 'idle'; S.movingEnd = null;
   S.draggingSegment = null; S.draggingVertex = null; S.draggingText = null;
+  ui.chipEdit.style.display = 'none';
+  ui.chipLen.style.display = 'none';
   History.clear();
   if (restoreView && data.view) {
     S.view.x = +data.view.x; S.view.y = +data.view.y; S.view.s = +data.view.s;
@@ -2808,6 +2854,7 @@ function updateToolbar() {
   else if (S.picking) ui.toolHint.textContent = '📍 coloca el origen';
   else if (S.draggingSegment) ui.toolHint.textContent = '↔ moviendo';
   else if (S.draggingVertex) ui.toolHint.textContent = '◉ moviendo vértice';
+  else if (S.editMode === 'choose-len-end') ui.toolHint.textContent = '📏 elige A o B';
   else if (w) {
     const kindLbl = isLine(w) ? 'Línea' : (w.kind === 'door' ? 'Puerta' : (w.kind === 'window' ? 'Ventana' : 'Muro'));
     ui.toolHint.textContent = `${kindLbl} ${w.dist.toFixed(2)} m`;
@@ -2821,6 +2868,7 @@ function updateActionsPanel() {
   if (!w) return;
   ui.apVano.disabled = !isWall(w);
   ui.apMove.disabled = S.editMode !== 'piece-selected';
+  ui.apLen.disabled = false;
 }
 
 $('btnFull').onclick = () => {
@@ -2866,6 +2914,7 @@ ui.chipVis.onclick = () => {
   render(); updateUI();
 };
 ui.chipEdit.onclick = () => { deselectSegment(); toast('Selección cancelada'); };
+ui.chipLen.onclick = () => { deselectSegment(); toast('Selección cancelada'); };
 ui.bUndo.onclick = undo;
 ui.bRedo.onclick = redo;
 ui.bAngle.onclick = () => {
@@ -2922,8 +2971,17 @@ ui.apEdit.onclick = () => {
   if (S.selWallIdx < 0) return;
   S.editMode = 'choose-point';
   ui.chipEdit.style.display = 'flex';
+  ui.chipLen.style.display = 'none';
   render(); updateUI();
-  toast('Toca A o B para mover ese vértice');
+  toast('✎ Toca A o B (arrastra o usa keypad)');
+};
+ui.apLen.onclick = () => {
+  if (S.selWallIdx < 0) return;
+  S.editMode = 'choose-len-end';
+  ui.chipLen.style.display = 'flex';
+  ui.chipEdit.style.display = 'none';
+  render(); updateUI();
+  toast('📏 Toca A o B para editar la longitud');
 };
 ui.apVano.onclick = () => {
   if (S.selWallIdx < 0) return;
@@ -3020,6 +3078,8 @@ ui.optClear.onclick = () => {
         S.origin = { x: 0, y: 0 }; S.lastDist = 0;
         S.polylineStart = 0; S.newPolylineOnPick = false;
         S.selWallIdx = -1; S.selPieceIdx = -1; S.editMode = 'idle'; S.movingEnd = null;
+        ui.chipEdit.style.display = 'none';
+        ui.chipLen.style.display = 'none';
         cancelTextPlacement(); resetView();
         render(); updateUI();
         toast('Dibujo borrado', 'warn');
