@@ -427,6 +427,12 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
       <button class="hinge-tab" data-hinge="right-out"><span class="ht-icon">↳</span><span>Der Ext</span></button>
     </div>
   </div>
+  <label class="field-label">Alineación del eje</label>
+  <div class="align-tabs" id="omAlignTabs">
+    <button class="align-tab" data-align="interior"><span class="at-icon">⊢</span><span>Interior</span></button>
+    <button class="align-tab" data-align="center"><span class="at-icon">⋮</span><span>Centro</span></button>
+    <button class="align-tab" data-align="exterior"><span class="at-icon">⊣</span><span>Exterior</span></button>
+  </div>
   <div class="row"><button class="b-cancel" id="omCancel">Cancelar</button><button class="b-delete" id="omDelete" style="display:none">Borrar</button><button class="b-ok" id="omOk">Aplicar</button></div>
 </div>
 
@@ -622,7 +628,7 @@ const DXFExporter = (() => {
     return { x: w.x1 + ux * d + nx * o, y: w.y1 + uy * d + ny * o };
   }
   function getFaceOffsets(w) {
-    if (isLine(w) || isOpening(w)) return { o1: 0, o2: 0 };
+    if (isLine(w)) return { o1: 0, o2: 0 };
     const t = w.thickness || (w.typeId && DEFAULT_WALL_TYPES[w.typeId] ? DEFAULT_WALL_TYPES[w.typeId].thickness : 0.21);
     const a = w.alignment || 'center';
     if (a === 'interior') return { o1: 0, o2: t };
@@ -702,23 +708,23 @@ const DXFExporter = (() => {
       const rad = wl.angle * Math.PI / 180;
       const ux = Math.cos(rad), uy = Math.sin(rad);
       const nx = -uy, ny = ux;
-      const T = wl.thickness || 0.21; const t2 = T/2;
-      const p1 = { x: wl.x1 + nx * t2, y: wl.y1 + ny * t2 };
-      const p2 = { x: wl.x2 + nx * t2, y: wl.y2 + ny * t2 };
-      const p3 = { x: wl.x2 - nx * t2, y: wl.y2 - ny * t2 };
-      const p4 = { x: wl.x1 - nx * t2, y: wl.y1 - ny * t2 };
+      // Caras según alineación (igual que los muros); mo = línea media del hueco
+      const { o1, o2 } = getFaceOffsets(wl); const mo = (o1 + o2) / 2;
+      const p1 = wallPointAt(wl, 0, o2), p2 = wallPointAt(wl, wl.dist, o2);
+      const p3 = wallPointAt(wl, wl.dist, o1), p4 = wallPointAt(wl, 0, o1);
       for (const [A, B] of [[p1,p2],[p2,p3],[p3,p4],[p4,p1]]) {
         w(`0\nLINE\n8\n${L}\n10\n${n4(A.x)}\n20\n${n4(A.y)}\n30\n0.0\n11\n${n4(B.x)}\n21\n${n4(B.y)}\n31\n0.0\n`);
       }
+      const m1 = wallPointAt(wl, 0, mo), m2 = wallPointAt(wl, wl.dist, mo);
       if (wl.kind === 'window') {
-        w(`0\nLINE\n8\n${L}\n10\n${n4(wl.x1)}\n20\n${n4(wl.y1)}\n30\n0.0\n11\n${n4(wl.x2)}\n21\n${n4(wl.y2)}\n31\n0.0\n`);
+        w(`0\nLINE\n8\n${L}\n10\n${n4(m1.x)}\n20\n${n4(m1.y)}\n30\n0.0\n11\n${n4(m2.x)}\n21\n${n4(m2.y)}\n31\n0.0\n`);
       }
       if (wl.kind === 'door') {
         const hinge = wl.hinge || 'left-in';
         const isLeft = hinge.startsWith('left');
         const isOut = hinge.endsWith('out');
-        const hx = isLeft ? wl.x1 : wl.x2;
-        const hy = isLeft ? wl.y1 : wl.y2;
+        const hx = isLeft ? m1.x : m2.x;
+        const hy = isLeft ? m1.y : m2.y;
         const baseAng = isLeft ? Math.atan2(wl.y2 - wl.y1, wl.x2 - wl.x1) : Math.atan2(wl.y1 - wl.y2, wl.x1 - wl.x2);
         const sideSign = isOut ? +1 : -1;
         const openSign = isLeft ? -1 : +1;
@@ -907,7 +913,7 @@ function getWallThickness(w) {
   return getWallType(w).thickness;
 }
 function getWallFaceOffsets(w) {
-  if (isLine(w) || isOpening(w)) return { o1: 0, o2: 0 };
+  if (isLine(w)) return { o1: 0, o2: 0 };
   const t = getWallThickness(w);
   if (w.alignment === 'interior') return { o1: 0, o2: t };
   if (w.alignment === 'exterior') return { o1: -t, o2: 0 };
@@ -1652,7 +1658,8 @@ function openOpeningModal(idx) {
   ui.omDesc.textContent = `${isDoor ? 'Puerta' : 'Ventana'} · ${w.dist.toFixed(2)} m`;
   ui.omWidth.value = w.dist.toFixed(3);
   ui.omHingeSection.classList.toggle('section-hidden', !isDoor);
-  updateHingeTabs();
+  S.tempOpeningAlign = w.alignment || 'center';
+  updateHingeTabs(); updateOpeningAlignTabs();
   ui.omDelete.style.display = 'flex';
   ui.omOk.textContent = 'Aplicar';
   showModal(ui.openingModal);
@@ -1664,6 +1671,13 @@ function updateHingeTabs() {
 ui.omHingeTabs.addEventListener('click', e => {
   const tab = e.target.closest('.hinge-tab'); if (!tab) return;
   S.tempOpeningHinge = tab.dataset.hinge; updateHingeTabs();
+});
+function updateOpeningAlignTabs() {
+  $('omAlignTabs').querySelectorAll('.align-tab').forEach(t => t.classList.toggle('on', t.dataset.align === S.tempOpeningAlign));
+}
+$('omAlignTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.align-tab'); if (!tab) return;
+  S.tempOpeningAlign = tab.dataset.align; updateOpeningAlignTabs();
 });
 ui.omCancel.onclick = () => closeOpeningModal();
 ui.omDelete.onclick = () => {
@@ -1692,6 +1706,7 @@ ui.omOk.onclick = () => {
   if (followsOrigin) S.origin = { x: w.x2, y: w.y2 };
   if (next) { next.x1 = w.x2; next.y1 = w.y2; recomputeWallMetrics(nextIdx); }
   if (w.kind === 'door') w.hinge = S.tempOpeningHinge;
+  w.alignment = S.tempOpeningAlign || 'center';
   closeOpeningModal(); render(); updateUI();
   toast(`${w.kind === 'door' ? 'Puerta' : 'Ventana'} · ${nw.toFixed(2)} m`, 'ok');
   triggerAutosave();
@@ -1736,9 +1751,9 @@ function drawDoorSegment(w, idx, isActive) {
   const rad = w.angle * Math.PI / 180;
   const ux = Math.cos(rad), uy = Math.sin(rad);
   const nx = -uy, ny = ux;
-  const T = w.thickness || 0.21, t2 = T / 2;
+  const { o1, o2 } = getWallFaceOffsets(w), mo = (o1 + o2) / 2;
   const at = (d, o) => w2s(w.x1 + ux * d + nx * o, w.y1 + uy * d + ny * o);
-  const A1 = at(0, +t2), A2 = at(w.dist, +t2), B1 = at(0, -t2), B2 = at(w.dist, -t2);
+  const A1 = at(0, o2), A2 = at(w.dist, o2), B1 = at(0, o1), B2 = at(w.dist, o1);
   const color = isDragging ? '#fbbf24' : (isSelPiece ? '#22c55e' : (isActive ? '#60a5fa' : '#3b82f6'));
   const glow = isDragging ? 'rgba(251,191,36,.85)' : (isSelPiece ? 'rgba(34,197,94,.85)' : 'rgba(96,165,250,.5)');
   const fill = isDragging ? 'rgba(251,191,36,.22)' : (isSelPiece ? 'rgba(34,197,94,.2)' : 'rgba(96,165,250,.14)');
@@ -1762,8 +1777,9 @@ function drawDoorSegment(w, idx, isActive) {
   const hinge = w.hinge || 'left-in';
   const isLeft = hinge.startsWith('left');
   const isOut = hinge.endsWith('out');
-  const hx = isLeft ? w.x1 : w.x2;
-  const hy = isLeft ? w.y1 : w.y2;
+  // Bisagra sobre la línea media del hueco (sigue la alineación)
+  const hx = w.x1 + ux * (isLeft ? 0 : w.dist) + nx * mo;
+  const hy = w.y1 + uy * (isLeft ? 0 : w.dist) + ny * mo;
   const baseAng = isLeft ? Math.atan2(w.y2 - w.y1, w.x2 - w.x1) : Math.atan2(w.y1 - w.y2, w.x1 - w.x2);
   const sideSign = isOut ? +1 : -1;
   const openSign = isLeft ? -1 : +1;
@@ -1799,10 +1815,10 @@ function drawWindowSegment(w, idx, isActive) {
   const rad = w.angle * Math.PI / 180;
   const ux = Math.cos(rad), uy = Math.sin(rad);
   const nx = -uy, ny = ux;
-  const T = w.thickness || 0.21, t2 = T / 2;
+  const { o1, o2 } = getWallFaceOffsets(w), mo = (o1 + o2) / 2, t2 = (o2 - o1) / 2;
   const at = (d, o) => w2s(w.x1 + ux * d + nx * o, w.y1 + uy * d + ny * o);
-  const A1 = at(0, +t2), A2 = at(w.dist, +t2), B1 = at(0, -t2), B2 = at(w.dist, -t2);
-  const mid1 = at(0, 0), mid2 = at(w.dist, 0);
+  const A1 = at(0, o2), A2 = at(w.dist, o2), B1 = at(0, o1), B2 = at(w.dist, o1);
+  const mid1 = at(0, mo), mid2 = at(w.dist, mo);
   const color = isDragging ? '#fbbf24' : (isSelPiece ? '#22c55e' : (isActive ? '#22d3ee' : '#0891b2'));
   const glow = isDragging ? 'rgba(251,191,36,.85)' : (isSelPiece ? 'rgba(34,197,94,.85)' : 'rgba(34,211,238,.5)');
   const fill = isDragging ? 'rgba(251,191,36,.22)' : (isSelPiece ? 'rgba(34,197,94,.2)' : 'rgba(34,211,238,.14)');
@@ -1823,11 +1839,11 @@ function drawWindowSegment(w, idx, isActive) {
   ctx.strokeStyle = color;
   ctx.lineWidth = isSelPiece || isDragging ? 2 : 1.4;
   ctx.beginPath(); ctx.moveTo(mid1.x, mid1.y); ctx.lineTo(mid2.x, mid2.y); ctx.stroke();
-  const b1 = at(0, +t2 * 0.45), b2 = at(w.dist, +t2 * 0.45);
+  const b1 = at(0, mo + t2 * 0.45), b2 = at(w.dist, mo + t2 * 0.45);
   ctx.strokeStyle = isSelPiece || isDragging ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.22)';
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
-  const c1 = at(0, -t2 * 0.45), c2 = at(w.dist, -t2 * 0.45);
+  const c1 = at(0, mo - t2 * 0.45), c2 = at(w.dist, mo - t2 * 0.45);
   ctx.beginPath(); ctx.moveTo(c1.x, c1.y); ctx.lineTo(c2.x, c2.y); ctx.stroke();
 }
 function drawWallSegment(w, idx, isActive) {
