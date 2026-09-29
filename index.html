@@ -1677,11 +1677,20 @@ ui.omOk.onclick = () => {
   if (!w) { closeOpeningModal(); return; }
   const nw = parseFloat((ui.omWidth.value || '').replace(',', '.'));
   if (!isFinite(nw) || nw < 0.3 || nw > 5) { toast('Ancho inválido (0.3–5.0)', 'err'); return; }
+  // Pieza que empieza en el extremo B del vano (resto del muro): se ajusta para no dejar hueco ni solape
+  const nextIdx = S.lines.findIndex((l, i) => i !== idx && !isLine(l)
+    && Math.hypot(l.x1 - w.x2, l.y1 - w.y2) < 1e-4
+    && Math.abs(((l.angle - w.angle + 540) % 360) - 180) < 0.5);
+  const next = nextIdx >= 0 ? S.lines[nextIdx] : null;
+  if (next && next.dist - (nw - w.dist) < 0.02) { toast(`Máximo ${(w.dist + next.dist - 0.02).toFixed(2)} m (choca con el muro)`, 'err'); return; }
   History.push(S);
+  const followsOrigin = !next && Math.hypot(S.origin.x - w.x2, S.origin.y - w.y2) < 1e-6;
   const rad = w.angle * Math.PI / 180;
   w.x2 = w.x1 + nw * Math.cos(rad);
   w.y2 = w.y1 + nw * Math.sin(rad);
   w.dist = nw;
+  if (followsOrigin) S.origin = { x: w.x2, y: w.y2 };
+  if (next) { next.x1 = w.x2; next.y1 = w.y2; recomputeWallMetrics(nextIdx); }
   if (w.kind === 'door') w.hinge = S.tempOpeningHinge;
   closeOpeningModal(); render(); updateUI();
   toast(`${w.kind === 'door' ? 'Puerta' : 'Ventana'} · ${nw.toFixed(2)} m`, 'ok');
@@ -2360,11 +2369,12 @@ cv.addEventListener('pointerdown', e => {
         render(); return;
       }
     }
-    if ((S.editMode === 'choose-point' || S.editMode === 'choose-len-end') && S.selWallIdx >= 0) {
+    // Arrastre de vértice solo en EDITAR; en LONGITUD el toque cae a handleTap → keypad
+    if (S.editMode === 'choose-point' && S.selWallIdx >= 0) {
       const handle = findVertexHandleAt(p.x, p.y);
       if (handle) {
         S.movingEnd = handle;
-        S.draggingVertex = { wallIdx: S.selWallIdx, end: handle, moved: false };
+        S.draggingVertex = { wallIdx: S.selWallIdx, end: handle, moved: false, startSx: p.x, startSy: p.y };
         S.vertexDragSnap = null;
         panning = false;
         render(); return;
@@ -2378,6 +2388,8 @@ cv.addEventListener('pointerdown', e => {
           wallIdx: S.selWallIdx,
           orig: { x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 },
           startSx: p.x, startSy: p.y,
+          // El origen sigue al segmento si estaba en su extremo B (último tramo dibujado)
+          followsOrigin: Math.hypot(S.origin.x - w.x2, S.origin.y - w.y2) < 1e-6,
         };
         S.segDragMoved = false; S.segDragSnap = null;
         panning = false;
@@ -2410,22 +2422,30 @@ cv.addEventListener('pointermove', e => {
     return;
   }
   if (S.draggingVertex) {
-    const { wallIdx, end } = S.draggingVertex;
-    S.draggingVertex.moved = true;
+    const dv = S.draggingVertex;
+    const { wallIdx, end } = dv;
+    const w = S.lines[wallIdx];
+    if (!w) return;
+    if (!dv.moved) {
+      // Umbral: un toque con micro-movimiento no debe mover el vértice
+      if (Math.hypot(p.x - dv.startSx, p.y - dv.startSy) <= MOVE_DRAG_THRESHOLD) return;
+      History.push(S);
+      dv.moved = true;
+      dv.followsOrigin = end === 'end' && Math.hypot(S.origin.x - w.x2, S.origin.y - w.y2) < 1e-6;
+    }
     const snap = computeSnap(p.x, p.y, wallIdx);
     S.vertexDragSnap = snap;
-    const w = S.lines[wallIdx];
     if (end === 'start') { w.x1 = snap.x; w.y1 = snap.y; }
     else { w.x2 = snap.x; w.y2 = snap.y; }
     recomputeWallMetrics(wallIdx);
-    if (end === 'end' && wallIdx === S.lines.length - 1) { S.origin = { x: w.x2, y: w.y2 }; }
+    if (dv.followsOrigin) { S.origin = { x: w.x2, y: w.y2 }; }
     render(); updateUI();
     return;
   }
   if (S.draggingSegment) {
     const ds = S.draggingSegment;
     const dx = p.x - ds.startSx, dy = p.y - ds.startSy;
-    if (!S.segDragMoved && Math.hypot(dx, dy) > MOVE_DRAG_THRESHOLD) S.segDragMoved = true;
+    if (!S.segDragMoved && Math.hypot(dx, dy) > MOVE_DRAG_THRESHOLD) { History.push(S); S.segDragMoved = true; }
     if (S.segDragMoved) {
       const w = S.lines[ds.wallIdx];
       const dxW = dx / S.view.s, dyW = -dy / S.view.s;
@@ -2442,6 +2462,7 @@ cv.addEventListener('pointermove', e => {
         S.segDragSnap = snapCenter;
       } else S.segDragSnap = null;
       w.x1 = fX1; w.y1 = fY1; w.x2 = fX2; w.y2 = fY2;
+      if (ds.followsOrigin) S.origin = { x: fX2, y: fY2 };
       render(); updateUI();
     }
     return;
@@ -2489,6 +2510,8 @@ cv.addEventListener('pointerup', e => {
     if (moved && w) { toast(`Vértice ${S.movingEnd === 'start' ? 'A' : 'B'} movido · ${w.dist.toFixed(3)}m`, 'ok'); triggerAutosave(); }
     render(); updateUI();
     if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
+    // Toque sin arrastre sobre A/B → abrir keypad de longitud
+    if (!moved && p) handleTap(p);
     return;
   }
   if (S.draggingSegment) {
@@ -2504,6 +2527,8 @@ cv.addEventListener('pointerup', e => {
     }
     render(); updateUI();
     if (ptrs.size === 0) { pinch = null; panning = false; panStart = null; }
+    // Segundo toque sobre una puerta/ventana seleccionada → editar ancho y bisagra
+    if (!moved && w && isOpening(w)) openOpeningModal(wIdx);
     return;
   }
   if (S.draggingText !== null) {
@@ -2866,7 +2891,7 @@ function updateActionsPanel() {
   if (!show) return;
   const w = S.lines[S.selWallIdx];
   if (!w) return;
-  ui.apVano.disabled = !isWall(w);
+  ui.apVano.disabled = !isWall(w) && !isOpening(w);
   ui.apMove.disabled = S.editMode !== 'piece-selected';
   ui.apLen.disabled = false;
 }
@@ -2987,6 +3012,7 @@ ui.apVano.onclick = () => {
   if (S.selWallIdx < 0) return;
   const w = S.lines[S.selWallIdx];
   if (!w) return;
+  if (isOpening(w)) { openOpeningModal(S.selWallIdx); return; }
   if (!isWall(w)) { toast('VANO solo en muros', 'warn'); return; }
   openVanoModal(S.selWallIdx, -1, S.currentOpeningKind);
 };
