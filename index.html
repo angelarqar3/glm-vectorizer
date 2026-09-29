@@ -102,7 +102,6 @@ body.hide-chrome .actions-panel{bottom:12px}
 .ap-btn.edit{color:#22c55e}
 .ap-btn.len{color:#fbbf24}
 .ap-btn.vano{color:#f59e0b}
-.ap-btn.move{color:#22d3ee}
 .ap-btn.type{color:#a78bfa}
 .ap-btn.del{color:#ef4444}
 .ap-btn:disabled{opacity:.28;cursor:not-allowed}
@@ -289,7 +288,6 @@ body.kp-open .toasts{bottom:calc(340px + env(safe-area-inset-bottom))}
     <button class="ap-btn edit" id="apEdit"><span class="ap-ic">✎</span>EDITAR</button>
     <button class="ap-btn len" id="apLen"><span class="ap-ic">📏</span>LONGITUD</button>
     <button class="ap-btn vano" id="apVano"><span class="ap-ic">🚪</span>VANO</button>
-    <button class="ap-btn move" id="apMove"><span class="ap-ic">↔</span>MOVER</button>
     <button class="ap-btn type" id="apType"><span class="ap-ic">🧱</span>TIPO</button>
     <button class="ap-btn del" id="apDel"><span class="ap-ic">🗑</span>BORRAR</button>
   </div>
@@ -895,7 +893,7 @@ const ui = {
   toolType: $('toolType'), toolWallTag: $('toolWallTag'),
   toolTypeTag: $('toolTypeTag'), toolHint: $('toolHint'),
   actionsPanel: $('actionsPanel'),
-  apEdit: $('apEdit'), apLen: $('apLen'), apVano: $('apVano'), apMove: $('apMove'),
+  apEdit: $('apEdit'), apLen: $('apLen'), apVano: $('apVano'),
   apType: $('apType'), apDel: $('apDel'),
   btnProject: $('btnProject'),
 };
@@ -2908,7 +2906,6 @@ function updateActionsPanel() {
   const w = S.lines[S.selWallIdx];
   if (!w) return;
   ui.apVano.disabled = !isWall(w) && !isOpening(w);
-  ui.apMove.disabled = S.editMode !== 'piece-selected';
   ui.apLen.disabled = false;
 }
 
@@ -3031,11 +3028,6 @@ ui.apVano.onclick = () => {
   if (isOpening(w)) { openOpeningModal(S.selWallIdx); return; }
   if (!isWall(w)) { toast('VANO solo en muros', 'warn'); return; }
   openVanoModal(S.selWallIdx, -1, S.currentOpeningKind);
-};
-ui.apMove.onclick = () => {
-  if (S.selWallIdx < 0) return;
-  if (S.editMode !== 'piece-selected') { toast('Selecciona primero una pieza'); return; }
-  toast('Arrastra el segmento para moverlo');
 };
 ui.apType.onclick = () => { if (S.selWallIdx >= 0) openWallPropertiesModal(S.selWallIdx); };
 ui.apDel.onclick = () => {
